@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-boot-app
+  labels:
+    app: spring-boot-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-boot-app
+  template:
+    metadata:
+      labels:
+        app: spring-boot-app
+    spec:
+      containers:
+        - name: spring-boot-app
+          image: quay.io/fvaleri/spring-boot-app:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: BROKER_URI
+              value: "amqp://my-broker-amqp-0-svc:5672"
+            - name: BROKER_USERNAME
+              value: "admin"
+            - name: BROKER_PASSWORD
+              value: "admin"
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 256Mi
+            requests:
+              cpu: 500m
+              memory: 128Mi
+          #readinessProbe/livenessProbe
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - spring-boot-app
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-boot-app
+spec:
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: spring-boot-app
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: spring-boot-app
+spec:
+  wildcardPolicy: None
+  to:
+    kind: Service
+    name: spring-boot-app
+    weight: 100
+  port:
+    targetPort: 8080

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/spring" streamCache="true" trace="false">
+        <propertyPlaceholder id="properties" location="sql.properties"/>
+        <jmxAgent id="agent" disabled="true"/>
+
+        <!--
+            No onException block.
+            TransactionErrorHandler handles redeliveries (max 6) and TransactionManager handles rollbacks.
+        -->
+
+        <route id="partnerToDB">
+            <from uri="jms:queue:partners"/>
+            <!--
+                New local broker TX (the message is acked here).
+                If TXs are not enabled, then you may lose the message in case of exception.
+                Local TXs are bound to the connection, not the thread (moving a thread-safe connection to another thread, the TXs will follow).
+            -->
+            <transacted/>
+            <bean ref="partnerServiceBean" method="toMap"/>
+            <!--
+                New local database TX (use JTA to have a single distributed TX).
+                You may still have the message on the queue if the broker fails after a successful db insert.
+            -->
+            <to uri="sql:{{sql-insert}}?dataSource=#myDataSource"/>
+        </route>
+    </camelContext>
+
+    <bean id="shutdown" class="org.apache.camel.impl.DefaultShutdownStrategy">
+        <property name="timeout" value="5"/>
+    </bean>
+
+    <bean id="partnerServiceBean" class="it.fvaleri.example.PartnerServiceBean"/>
+
+    <!--
+        Non JTA ActiveMQ connection factory.
+    -->
+    <bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <!--
+            Set maxReconnectAttempts=0 to let the PooledConnectionFactory to renew stale connections.
+            Prefetch policy: large value with high volume of messages, one with JTA or large messages.
+        -->
+        <property name="brokerURL" value="failover:(vm://localhost)?jms.prefetchPolicy.all=500&amp;maxReconnectAttempts=0"/>
+        <property name="userName" value="admin"/>
+        <property name="password" value="admin"/>
+    </bean>
+
+    <!--
+        Camel AMQP component is based on JMS component, which is based on Spring JMS library .
+
+        Spring JMS uses the JmsTemplate that creates a new connection, session and producer for every single message
+        to be produced, which greatly degrades performance (especially when using TLS and/or JTA).
+
+        On the consumer side, the DefaultMessageListenerContainer (DMLC) has a cacheLevelName configuration property,
+        but there is nothing similar for producers.
+
+        This is all by design, so we always recommend to use connection pooling with the JMS component.
+        The connection pool is filled eagerly, but only one is used at runtime and can be shared between producers
+        and consumers because it's a thread safe object.
+
+        When using durable topic subscriber the connection include the clientId and cannot be shared between consumers.
+        In that case, use a dedicated JMS component setting (maxConnections=1) and (maxConcurrentConsumers=1).
+
+        The Spring CachingConnectionFactory is only useful to cache producers, but may lead to stuck messages
+        (cached consumers which get messages where there is no listener).
+    -->
+    <bean id="pooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory" init-method="start"
+          destroy-method="stop">
+        <property name="connectionFactory" ref="connectionFactory"/>
+        <!--
+            We only want one connection and we want to keep it opened.
+         -->
+        <property name="maxConnections" value="1"/>
+        <property name="idleTimeout" value="0"/>
+        <!--
+            Set (maxActiveSessionPerConn >= maxConcurrentConsumers+1) to avoid session exhaustion.
+        -->
+        <property name="maximumActiveSessionPerConnection" value="11"/>
+    </bean>
+
+    <!--
+        Non JTA transaction manager.
+    -->
+    <bean id="txManager" class="org.springframework.jms.connection.JmsTransactionManager">
+        <property name="connectionFactory" ref="pooledConnectionFactory"/>
+    </bean>
+
+    <!--
+        JMS component configuration.
+    -->
+    <bean id="jms" class="org.apache.camel.component.jms.JmsComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <property name="connectionFactory" ref="pooledConnectionFactory"/>
+                <property name="transactionManager" ref="txManager"/>
+                <!--
+                    Whether or not to use local transactions (false with JTA and clustering).
+                -->
+                <property name="transacted" value="true"/>
+                <property name="concurrentConsumers" value="10"/>
+                <property name="maxConcurrentConsumers" value="10"/>
+                <!--
+                    It's safer to disable caching when using transactions.
+                    After setting cacheLevelName >= CACHE_CONNECTION, the JMS component
+                    will only use one connection regardless of the concurrentConsumers count.
+                    With CACHE_CONSUMER Spring JMS never returns the connection in use.
+                -->
+                <property name="cacheLevelName" value="CACHE_NONE"/>
+                <!--
+                    The ack mode is ignored when using TXs.
+                -->
+                <property name="acknowledgementModeName" value="AUTO_ACKNOWLEDGE"/>
+                <!--
+                    Set high value to avoid too many conn/s when having lots of concurrent consumers.
+                -->
+                <property name="receiveTimeout" value="100000"/>
+                <!--
+                    Set true to enforce InOnly exchange mode on consumers and avoid deadlocks
+                    caused by the producer expecting a reply and never ending the TX.
+                -->
+                <property name="disableReplyTo" value="true"/>
+            </bean>
+        </property>
+    </bean>
+
+    <!--
+        Non JTA Derby data source.
+    -->
+    <bean id="myDataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="org.apache.derby.jdbc.EmbeddedDataSource"/>
+        <property name="url" value="jdbc:derby:memory:order;create=true"/>
+    </bean>
+</beans>

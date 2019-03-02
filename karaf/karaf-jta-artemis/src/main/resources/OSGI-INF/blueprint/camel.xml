@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 https://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+             http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/blueprint" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+
+        <onException>
+            <exception>java.lang.Exception</exception>
+            <redeliveryPolicy maximumRedeliveries="0"/>
+            <handled>
+                <constant>true</constant>
+            </handled>
+            <log message="Exception caught" loggingLevel="ERROR"/>
+            <rollback markRollbackOnly="true"/>
+        </onException>
+
+        <route id="xaTestRoute">
+            <from uri="jms:queue:xaQueue1"/>
+            <transacted ref="required"/>
+            <log message="Redelivered: ${header.JMSRedelivered}" loggingLevel="INFO"/>
+            <process ref="dbMessageProc"/>
+            <log message="Data written to database" loggingLevel="INFO"/>
+            <to uri="jpa:it.fvaleri.example.DbMessage?flushOnSend=true&amp;usePersist=true"/>
+            <transform>
+                <simple>${body.messageText}</simple>
+            </transform>
+            <to uri="jms:queue:xaQueue2"/>
+        </route>
+    </camelContext>
+
+    <bean id="dbMessageProc" class="it.fvaleri.example.DbMessageProc"/>
+
+    <!-- import platform TX manager (Aries) -->
+    <reference id="platformTxManager" interface="org.springframework.transaction.PlatformTransactionManager"/>
+
+    <bean id="required" class="org.apache.camel.spring.spi.SpringTransactionPolicy">
+        <property name="transactionManager" ref="platformTxManager"/>
+        <property name="propagationBehaviorName" value="PROPAGATION_REQUIRED"/>
+    </bean>
+
+    <!-- BROKER SETUP -->
+    <reference id="connectionFactory" interface="javax.jms.ConnectionFactory"
+               filter="(osgi.jndi.service.name=jms/artemisXACF)"/>
+
+    <bean id="jms" class="org.apache.camel.component.jms.JmsComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <property name="connectionFactory" ref="connectionFactory"/>
+                <!-- JTA transaction manager (Spring interface to Aries-TM) -->
+                <property name="transactionManager" ref="platformTxManager"/>
+                <!-- set local transactions to false because the JtaTransactionManager will take care of enrolling -->
+                <property name="transacted" value="false"/>
+                <!-- set CACHE_NONE because caching does not work with XA -->
+                <property name="cacheLevelName" value="CACHE_NONE"/>
+                <property name="maxConcurrentConsumers" value="1"/>
+                <property name="testConnectionOnStartup" value="true"/>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- DATABASE SETUP -->
+    <reference id="entityManagerFactory" interface="javax.persistence.EntityManagerFactory"/>
+
+    <bean id="jpa" class="org.apache.camel.component.jpa.JpaComponent" activation="lazy">
+        <property name="entityManagerFactory" ref="entityManagerFactory"/>
+        <!-- otherwise org.apache.aries.transaction.internal.AriesPlatformTransactionManager would be picked -->
+        <property name="transactionManager" ref="platformTxManager"/>
+        <!-- should be true because we are using JTA entity manager -->
+        <property name="joinTransaction" value="true"/>
+        <!-- set false because we are injecting JTA context-aware EMF -->
+        <property name="sharedEntityManager" value="false"/>
+    </bean>
+</blueprint>

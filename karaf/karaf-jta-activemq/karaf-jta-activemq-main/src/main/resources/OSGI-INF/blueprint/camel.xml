@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/blueprint" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+
+        <onException>
+            <exception>java.lang.Exception</exception>
+            <redeliveryPolicy maximumRedeliveries="0"/>
+            <handled>
+                <constant>true</constant>
+            </handled>
+            <log message="Exception caught" loggingLevel="ERROR"/>
+            <rollback markRollbackOnly="true"/>
+        </onException>
+
+        <route id="xaTestRoute">
+            <from uri="jms:queue:xaQueue1"/>
+            <transacted ref="required"/>
+            <log message="Redelivered: ${header.JMSRedelivered}" loggingLevel="INFO"/>
+            <to uri="sql:INSERT INTO users VALUES (:#firstname, :#lastname, :#login, :#password)"/>
+            <log message="Data written to database" loggingLevel="INFO"/>
+            <to uri="jms:queue:xaQueue2"/>
+        </route>
+    </camelContext>
+
+    <!-- import platform TX manager (Geronimo) service both as Spring wrapper and as JTA interface (same instance) -->
+    <reference id="platformTxManager" interface="org.springframework.transaction.PlatformTransactionManager"
+               availability="mandatory"/>
+    <reference id="recoverableTxManager"
+               interface="org.apache.geronimo.transaction.manager.RecoverableTransactionManager"
+               availability="mandatory"/>
+
+    <bean id="required" class="org.apache.camel.spring.spi.SpringTransactionPolicy">
+        <property name="transactionManager" ref="platformTxManager"/>
+        <property name="propagationBehaviorName" value="PROPAGATION_REQUIRED"/>
+    </bean>
+
+    <!-- BROKER SETUP -->
+    <bean id="amqXACF" class="org.apache.activemq.ActiveMQXAConnectionFactory">
+        <property name="brokerURL" value="tcp://localhost:61616"/>
+        <property name="userName" value="admin"/>
+        <property name="password" value="admin"/>
+        <property name="alwaysSyncSend" value="true"/>
+        <property name="prefetchPolicy">
+            <bean class="org.apache.activemq.ActiveMQPrefetchPolicy">
+                <property name="all" value="1"/>
+            </bean>
+        </property>
+        <property name="redeliveryPolicy">
+            <bean class="org.apache.activemq.RedeliveryPolicy">
+                <property name="maximumRedeliveries" value="2"/>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- using an auto-enlisting pooling JcaPooledConnectionFactory -->
+    <bean id="pooledXACF" class="org.apache.activemq.pool.JcaPooledConnectionFactory" init-method="start"
+          destroy-method="stop">
+        <property name="name" value="broker1"/>
+        <property name="connectionFactory" ref="amqXACF"/>
+        <property name="transactionManager" ref="recoverableTxManager"/>
+        <property name="maxConnections" value="1"/>
+        <property name="maximumActiveSessionPerConnection" value="2"/>
+    </bean>
+
+    <bean id="amqResourceManager" class="org.apache.activemq.pool.ActiveMQResourceManager"
+          init-method="recoverResource">
+        <property name="transactionManager" ref="recoverableTxManager"/>
+        <!-- resource name needs to match the unique name set on JcaPooledConnectionFactory -->
+        <property name="resourceName" value="broker1"/>
+        <property name="connectionFactory" ref="amqXACF"/>
+        <property name="userName" value="admin"/>
+        <property name="password" value="admin"/>
+    </bean>
+
+    <bean id="jms" class="org.apache.camel.component.jms.JmsComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <property name="connectionFactory" ref="pooledXACF"/>
+                <property name="transacted" value="false"/>
+                <property name="transactionManager" ref="platformTxManager"/>
+                <property name="maxConcurrentConsumers" value="1"/>
+                <!-- set CACHE_NONE because caching does not work with XA -->
+                <property name="cacheLevelName" value="CACHE_NONE"/>
+                <property name="requestTimeout" value="20000"/>
+                <property name="disableReplyTo" value="true"/>
+                <property name="deliveryPersistent" value="true"/>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- DATABASE SETUP -->
+    <!-- import DS service (in Fabric you may need to use availability="optional" due to a bug) -->
+    <reference id="mysqlXADS" interface="javax.sql.DataSource" filter="(datasource.name=mysqlXADS)"
+               availability="mandatory"/>
+
+    <bean id="sql" class="org.apache.camel.component.sql.SqlComponent">
+        <property name="dataSource" ref="mysqlXADS"/>
+    </bean>
+</blueprint>

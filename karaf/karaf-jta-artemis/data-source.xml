@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 https://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+    <!-- database-specific, non-pooling, non-enlisting javax.sql.XADataSource -->
+    <bean id="postgresXADS" class="org.postgresql.xa.PGXADataSource">
+        <property name="url" value="jdbc:postgresql://localhost:5432/testdb" />
+        <property name="user" value="admin" />
+        <property name="password" value="admin" />
+        <property name="currentSchema" value="public" />
+        <property name="connectTimeout" value="5" />
+    </bean>
+
+    <!--
+        expose database-specific DS with service properties;
+        no need to expose pooling, enlisting, non database-specific javax.sql.DataSource
+        because it is automatically registered by pax-jdbc-config
+    -->
+    <service id="poolDS" ref="postgresXADS" interface="javax.sql.XADataSource">
+        <service-properties>
+            <!-- "pool" key is needed for pax-jdbc-config to wrap database-specific data source inside connection pool -->
+            <entry key="pool" value="narayana" />
+            <entry key="xa" value="true" />
+            <entry key="osgi.jndi.service.name" value="jdbc/postgresXADS" />
+            <entry key="pool.minIdle" value="2" />
+            <entry key="pool.maxTotal" value="10" />
+            <entry key="pool.blockWhenExhausted" value="true" />
+            <entry key="pool.maxWaitMillis" value="2000" />
+            <entry key="pool.testOnBorrow" value="true" />
+            <entry key="pool.testWhileIdle" value="false" />
+        </service-properties>
+    </service>
+</blueprint>

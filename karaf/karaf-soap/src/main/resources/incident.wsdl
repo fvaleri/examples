@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+                  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                  xmlns:tns="http://example.fvaleri.it"
+                  targetNamespace="http://example.fvaleri.it">
+    <!-- type definitions for input and output parameters -->
+    <wsdl:types>
+        <xs:schema targetNamespace="http://example.fvaleri.it">
+            <xs:element name="inputReportIncident">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element type="xs:string" name="incidentId"/>
+                        <xs:element type="xs:string" name="incidentDate"/>
+                        <xs:element type="xs:string" name="givenName"/>
+                        <xs:element type="xs:string" name="familyName"/>
+                        <xs:element type="xs:string" name="summary"/>
+                        <xs:element type="xs:string" name="details"/>
+                        <xs:element type="xs:string" name="email"/>
+                        <xs:element type="xs:string" name="phone"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="outputReportIncident">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element type="xs:string" name="code"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:schema>
+    </wsdl:types>
+
+    <!-- message definitions for input and output -->
+    <wsdl:message name="inputReportIncident">
+        <wsdl:part name="in" element="tns:inputReportIncident"/>
+    </wsdl:message>
+    <wsdl:message name="outputReportIncident">
+        <wsdl:part name="out" element="tns:outputReportIncident"/>
+    </wsdl:message>
+
+    <!-- port (interface) definitions -->
+    <wsdl:portType name="ReportIncidentEndpoint">
+        <wsdl:operation name="reportIncident">
+            <wsdl:input message="tns:inputReportIncident"/>
+            <wsdl:output message="tns:outputReportIncident"/>
+        </wsdl:operation>
+    </wsdl:portType>
+
+    <!-- how the service is bound to a protocol plus encoding setup (HTTP, document/literal) -->
+    <wsdl:binding name="ReportIncidentBinding" type="tns:ReportIncidentEndpoint">
+        <soap:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="reportIncident">
+            <soap:operation soapAction="http://example.fvaleri.it/reportIncident" style="document"/>
+            <wsdl:input>
+                <soap:body parts="in" use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body parts="out" use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+
+    <!-- service definition -->
+    <wsdl:service name="ReportIncidentEndpointService">
+        <wsdl:port name="ReportIncidentEndpoint" binding="tns:ReportIncidentBinding">
+            <soap:address location="http://localhost:9090/cxf/ws/incident"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

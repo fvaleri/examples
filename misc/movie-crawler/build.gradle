@@ -1,0 +1,35 @@
+plugins {
+  id 'application'
+}
+
+dependencies {
+  implementation 'net.sourceforge.htmlunit:htmlunit:2.61.0'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.3'
+  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+repositories {
+  mavenCentral()
+}
+
+application {
+  mainClass = mainFqcn
+  sourceCompatibility = javaVersion
+  targetCompatibility = javaVersion
+}
+
+test {
+  useJUnitPlatform()
+}
+
+// create a runnable JAR
+jar {
+  manifest {
+    attributes('Main-Class': mainFqcn)
+  }
+  from {
+    configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+  }
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

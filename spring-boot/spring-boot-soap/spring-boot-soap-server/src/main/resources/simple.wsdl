@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:xs="http://www.w3.org/2001/XMLSchema"
+             xmlns:tns="http://example.com"
+             targetNamespace="http://example.com">
+    <!-- message definitions for input and output -->
+    <message name="requestMessage">
+        <part name="request" type="xs:string"/>
+    </message>
+    <message name="responseMessage">
+        <part name="response" type="xs:string"/>
+    </message>
+
+    <!-- port (interface) definitions -->
+    <portType name="simplePortType">
+        <operation name="simple">
+            <input message="tns:requestMessage"/>
+            <output message="tns:responseMessage"/>
+        </operation>
+    </portType>
+
+    <!-- how the service is bound to a protocol plus encoding setup (HTTP, document/literal) -->
+    <binding name="simpleSoapBinding" type="tns:simplePortType">
+        <soap:binding transport="http://schemas.xmlsoap.org/soap/http"/>
+        <operation name="simple">
+            <soap:operation soapAction="http://example.com/simple" style="document"/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+        </operation>
+    </binding>
+
+    <!-- service definition -->
+    <service name="simpleService">
+        <port name="simpleSoapEndPoint" binding="tns:simpleSoapBinding">
+            <soap:address location="http://localhost:8080/simple"/>
+        </port>
+    </service>
+</definitions>

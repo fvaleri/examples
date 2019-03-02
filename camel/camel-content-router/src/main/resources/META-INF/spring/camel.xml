@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/spring" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+
+        <route>
+            <from uri="jetty:http://0.0.0.0:9000/orders"/>
+            <choice>
+                <when>
+                    <xpath>order/division='UK'</xpath>
+                    <to uri="file:/tmp/uk-orders"/>
+                    <setBody>
+                        <constant>Accepted UK order</constant>
+                    </setBody>
+                    <to uri="log://it.fvaleri?level=INFO"/>
+                </when>
+                <when>
+                    <xpath>order/division='DE'</xpath>
+                    <to uri="file:/tmp/de-orders"/>
+                    <setBody>
+                        <constant>Accepted DE order</constant>
+                    </setBody>
+                    <to uri="log://it.fvaleri?level=INFO"/>
+                </when>
+                <otherwise>
+                    <setBody>
+                        <constant>Error: unknown division code</constant>
+                    </setBody>
+                    <to uri="log://it.fvaleri?level=ERROR"/>
+                </otherwise>
+            </choice>
+        </route>
+    </camelContext>
+</beans>

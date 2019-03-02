@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:cxf="http://camel.apache.org/schema/blueprint/cxf"
+           xmlns:http-conf="http://cxf.apache.org/transports/http/configuration"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/blueprint" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+
+        <route>
+            <from uri="cxf:bean:reportIncident"/>
+            <log message="Request received" loggingLevel="INFO"/>
+            <delay asyncDelayed="true">
+                <constant>60000</constant>
+            </delay>
+            <to uri="bean:requestWorker"/>
+            <inOnly uri="jms:queue:jmsLocalTx?jmsMessageType=Text"/>
+        </route>
+
+        <route>
+            <from uri="jms:queue:jmsLocalTx"/>
+            <log message="Message received"/>
+            <to uri="bean:messageWorker"/>
+        </route>
+    </camelContext>
+
+    <bean id="shutdown" class="org.apache.camel.impl.DefaultShutdownStrategy">
+        <property name="timeout" value="10"/>
+    </bean>
+
+    <bean id="requestWorker" class="it.fvaleri.example.RequestWorker"/>
+    <bean id="messageWorker" class="it.fvaleri.example.MessageWorker"/>
+
+    <!-- outbound CXF request timeouts -->
+    <http-conf:conduit name="*.http-conduit">
+        <http-conf:client Connection="Keep-Alive"
+                          ConnectionTimeout="100000"
+                          ReceiveTimeout="100000"/>
+    </http-conf:conduit>
+
+    <!-- inbound CXF request timeout: increase continuationTimeout (default: 30s)
+        to cope with slow external systems or set ?synchronous=true query parameter -->
+    <cxf:cxfEndpoint id="reportIncident"
+                     wsdlURL="incident.wsdl"
+                     address="/ws/incident"
+                     xmlns:ns="http://example.fvaleri.it"
+                     endpointName="ns:ReportIncidentEndpoint"
+                     serviceName="ns:ReportIncidentEndpointService"
+                     serviceClass="it.fvaleri.example.ReportIncidentEndpoint"
+                     continuationTimeout="100000">
+        <cxf:properties>
+            <entry key="dataFormat" value="POJO"/>
+            <entry key="exceptionMessageCauseEnabled" value="true"/>
+        </cxf:properties>
+    </cxf:cxfEndpoint>
+
+    <bean id="pooledCF" class="org.apache.activemq.pool.PooledConnectionFactory" init-method="start"
+          destroy-method="stop">
+        <property name="maxConnections" value="1"/>
+        <property name="idleTimeout" value="0"/>
+        <property name="maximumActiveSessionPerConnection" value="10"/>
+        <property name="connectionFactory">
+            <bean class="org.apache.activemq.ActiveMQConnectionFactory">
+                <property name="brokerURL" value="discovery:(fabric:default)"/>
+                <property name="userName" value="admin"/>
+                <property name="password" value="admin"/>
+                <property name="redeliveryPolicy">
+                    <bean class="org.apache.activemq.RedeliveryPolicy">
+                        <property name="maximumRedeliveries" value="3"/>
+                    </bean>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="jms" class="org.apache.camel.component.jms.JmsComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <property name="connectionFactory" ref="pooledCF"/>
+                <property name="transacted" value="true"/>
+                <property name="acknowledgementModeName" value="AUTO_ACKNOWLEDGE"/>
+                <property name="maxConcurrentConsumers" value="1"/>
+                <property name="receiveTimeout" value="100000"/>
+                <property name="cacheLevelName" value="CACHE_CONSUMER"/>
+            </bean>
+        </property>
+    </bean>
+</blueprint>

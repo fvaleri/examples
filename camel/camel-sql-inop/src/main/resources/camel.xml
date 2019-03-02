@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/spring" streamCache="true" trace="false">
+        <propertyPlaceholder id="properties" location="classpath:sql.properties"/>
+        <jmxAgent id="agent" disabled="true"/>
+
+        <route>
+            <from uri="direct:start"/>
+
+            <setHeader headerName="parid">
+                <simple>1</simple>
+            </setHeader>
+            <setHeader headerName="results">
+                <simple>200,500</simple>
+            </setHeader>
+
+            <to uri="sql:{{my-query}}?dataSource=#myDataSource"/>
+            <log message="Row count: ${header.CamelSqlRowCount}"/>
+
+            <split stopOnException="true">
+                <tokenize token="},"/>
+                <log message="Record: ${body}"/>
+                <to uri="mock:result"/>
+            </split>
+        </route>
+    </camelContext>
+
+    <bean id="jdbcTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="myDataSource"/>
+    </bean>
+
+    <bean id="myDataSource" destroy-method="close" class="org.apache.commons.dbcp2.BasicDataSource">
+        <property name="url" value="jdbc:derby:target/partnerdb;create=true"/>
+        <property name="initialSize" value="3"/>
+    </bean>
+</beans>

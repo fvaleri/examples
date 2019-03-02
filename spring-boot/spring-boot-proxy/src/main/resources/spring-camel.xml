@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/spring" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+
+        <onException>
+            <exception>java.lang.Exception</exception>
+            <handled>
+                <constant>true</constant>
+            </handled>
+            <setHeader headerName="Exchange.HTTP_RESPONSE_CODE">
+                <constant>500</constant>
+            </setHeader>
+            <setBody>
+                <simple>${exception.message}\n</simple>
+            </setBody>
+        </onException>
+
+        <restConfiguration component="servlet" port="8080" enableCORS="true" apiContextPath="/doc">
+            <endpointProperty key="servletName" value="servlet1"/>
+            <apiProperty key="api.title" value="Proxy Todo API"/>
+            <apiProperty key="api.version" value="0.0.1"/>
+            <apiProperty key="api.description" value="Proxy service example"/>
+            <apiProperty key="cors" value="true"/>
+        </restConfiguration>
+
+        <rest path="/proxy">
+            <description>Proxy Todo API</description>
+
+            <get uri="/todo/{id}" produces="application/json">
+                <description>Get todo item</description>
+                <responseMessage code="0" message="Success" responseModel="it.fvaleri.example.ApiMessage"/>
+                <responseMessage code="1" message="InputStream is null" responseModel="it.fvaleri.example.ApiMessage"/>
+                <responseMessage code="2" message="No item found" responseModel="it.fvaleri.example.ApiMessage"/>
+                <to uri="direct:todo-api"/>
+            </get>
+        </rest>
+
+        <route>
+            <from uri="direct:todo-api"/>
+            <toD uri="https4://jsonplaceholder.typicode.com/todos/${header.id}?bridgeEndpoint=true&amp;throwExceptionOnFailure=false"/>
+            <process ref="myProcessor"/>
+            <marshal>
+                <json library="Jackson" unmarshalTypeName="it.fvaleri.example.ApiMessage"/>
+            </marshal>
+        </route>
+    </camelContext>
+
+    <bean id="myProcessor" class="it.fvaleri.example.MyProcessor"/>
+</beans>

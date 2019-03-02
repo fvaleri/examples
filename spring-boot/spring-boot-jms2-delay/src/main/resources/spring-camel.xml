@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="delayedDeliveryOF" class="it.fvaleri.example.DelayedDeliveryOF"/>
+
+    <bean id="directCF" class="org.apache.qpid.jms.JmsConnectionFactory" primary="true">
+        <property name="remoteURI" value="${broker.uri}"/>
+        <property name="username" value="${broker.username}"/>
+        <property name="password" value="${broker.password}"/>
+    </bean>
+
+    <!--bean id="directCF" class="org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory" primary="true">
+        <constructor-arg value="${broker.uri}" />
+        <property name="user" value="${broker.username}" />
+        <property name="password" value="${broker.password}" />
+    </bean-->
+
+    <bean id="poolCF" class="org.messaginghub.pooled.jms.JmsPoolConnectionFactory">
+        <property name="connectionFactory" ref="directCF"/>
+        <property name="maxConnections" value="${broker.maxConnections}"/>
+        <property name="maxSessionsPerConnection" value="${broker.maxSessionsPerConnection}"/>
+        <!-- qdrouter does not support anonymous-relay capability -->
+        <property name="useAnonymousProducers" value="false"/>
+    </bean>
+
+    <bean id="sjms2" class="org.apache.camel.component.sjms2.Sjms2Component">
+        <property name="connectionFactory" ref="poolCF"/>
+    </bean>
+</beans>

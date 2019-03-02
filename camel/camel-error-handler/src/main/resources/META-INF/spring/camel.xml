@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <bean id="myException" class="it.fvaleri.example.MyException"/>
+    <bean id="myOtherException" class="it.fvaleri.example.MyOtherException"/>
+
+    <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+        
+        <onException>
+            <exception>it.fvaleri.example.MyOtherException</exception>
+            <handled>
+                <constant>true</constant>
+            </handled>
+            <log message="HANDLING MY OTHER EXCEPTION"/>
+        </onException>
+
+        <route id="mainRoute">
+            <from uri="timer://foo?repeatCount=1"/>
+
+            <doTry>
+                <to uri="direct:triggerError"/>
+                <doCatch>
+                    <exception>it.fvaleri.example.MyException</exception>
+                    <log message="IN DOCATCH"/>
+                </doCatch>
+                <doFinally>
+                    <log message="IN FINALLY"/>
+                </doFinally>
+            </doTry>
+
+            <!-- this exception should trigger global handling -->
+            <throwException message="Handle it in global-handler" exceptionType="it.fvaleri.example.MyOtherException"/>
+        </route>
+
+        <route id="errorRoute">
+            <from uri="direct:triggerError"/>
+            <throwException message="Handle it in try-catch" exceptionType="it.fvaleri.example.MyException"/>
+            <log message="Error route output"/>
+        </route>
+    </camelContext>
+</beans>

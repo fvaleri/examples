@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/spring" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+
+        <!-- end-to-end file streaming through HTTP wire-protocol -->
+        <route id="file-sender">
+            <from uri="file:/tmp/stream/input?include=.*ready&amp;readLock=changed"/>
+            <setHeader headerName="CamelHttpMethod">
+                <constant>PUT</constant>
+            </setHeader>
+            <to uri="http4:localhost:8123"/>
+            <log message="${body}"/>
+        </route>
+
+        <route id="file-receiver">
+            <from uri="jetty:http://0.0.0.0:8123?disableStreamCache=true"/>
+            <log message="Handling a stream of class: ${body.class}"/>
+            <log message="Headers: ${headers}"/>
+            <to uri="file:/tmp/stream/output"/>
+            <setBody>
+                <constant>File streaming complete</constant>
+            </setBody>
+        </route>
+    </camelContext>
+</beans>

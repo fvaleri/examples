@@ -1,0 +1,14 @@
+.settings/
+.idea/
+.vscode/
+.gradle/
+build/
+target/
+gradle/
+.project
+.classpath
+.factorypath
+.DS_Store
+*.iml
+gradlew
+gradlew.bat

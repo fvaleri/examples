@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 https://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+             http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/blueprint" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+
+        <route id="producer">
+            <from uri="timer:foo?period=2s"/>
+            <to uri="jms:queue:my-queue"/>
+            <log message="Message sent"/>
+        </route>
+
+        <route id="consumer">
+            <from uri="jms:queue:my-queue"/>
+            <log message="Got message ${header.JMSMessageID}"/>
+        </route>
+    </camelContext>
+
+    <bean id="artemisCF" class="org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory">
+        <argument value="tcp://localhost:61616"/>
+        <argument value="admin"/>
+        <argument value="admin"/>
+        <property name="callTimeout" value="2000"/>
+        <property name="initialConnectAttempts" value="3"/>
+    </bean>
+
+    <bean id="poolCF" class="org.messaginghub.pooled.jms.JmsPoolConnectionFactory">
+        <property name="connectionFactory" ref="artemisCF"/>
+        <property name="maxConnections" value="1"/>
+        <property name="maxSessionsPerConnection" value="11"/>
+        <!-- qdrouter does not support anonymous-relay capability -->
+        <property name="useAnonymousProducers" value="false"/>
+    </bean>
+
+    <bean id="jms" class="org.apache.camel.component.jms.JmsComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <property name="connectionFactory" ref="poolCF"/>
+                <property name="transacted" value="false"/>
+                <property name="cacheLevelName" value="CACHE_CONSUMER"/>
+                <property name="acknowledgementModeName" value="AUTO_ACKNOWLEDGE"/>
+                <property name="maxConcurrentConsumers" value="10"/>
+                <property name="testConnectionOnStartup" value="true"/>
+            </bean>
+        </property>
+    </bean>
+
+</blueprint>

@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-consumer
+  labels:
+    app: kafka-consumer
+spec:
+  backoffLimit: 0
+  completions: 1
+  parallelism: 1
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      name: kafka-consumer
+      labels:
+        app: kafka-consumer
+        job-name: kafka-consumer
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: kafka-consumer
+          image: quay.io/fvaleri/kafka-client:latest
+          imagePullPolicy: Always
+          env:
+            - name: CLIENT_TYPE
+              value: "consumer"
+            - name: BOOTSTRAP_SERVERS
+              value: "my-cluster-kafka-bootstrap:9092"
+            - name: SECURITY_PROTOCOL
+              value: "PLAINTEXT"
+            - name: TOPIC_NAME
+              value: "my-topic"
+            - name: NUM_MESSAGES
+              value: "100000"
+            - name: PROCESSING_DELAY_MS
+              value: "1000"

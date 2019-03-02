@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/blueprint" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+
+        <onException>
+            <exception>java.lang.Exception</exception>
+            <handled>
+                <constant>true</constant>
+            </handled>
+            <setHeader headerName="Exchange.HTTP_RESPONSE_CODE">
+                <constant>500</constant>
+            </setHeader>
+            <setBody>
+                <simple>${exception.message}\n</simple>
+            </setBody>
+        </onException>
+
+        <route id="myProxy">
+            <!-- /proxy/test -->
+            <from uri="servlet://test?servletName=servlet1"/>
+            <to uri="http4://jsonplaceholder.typicode.com/posts?bridgeEndpoint=true"/>
+            <log message="Received body: ${body}" loggingLevel="DEBUG"/>
+            <convertBodyTo type="java.lang.String"/>
+        </route>
+    </camelContext>
+
+    <!-- registering Camel servlet (servletName must be unique inside the HTTP container) -->
+    <reference id="httpService" interface="org.osgi.service.http.HttpService"/>
+    <bean id="camelServlet" class="org.apache.camel.component.servlet.CamelHttpTransportServlet"/>
+    <bean class="org.apache.camel.component.servlet.osgi.OsgiServletRegisterer" init-method="register"
+          destroy-method="unregister">
+        <property name="alias" value="/proxy"/>
+        <property name="httpService" ref="httpService"/>
+        <property name="servlet" ref="camelServlet"/>
+        <property name="servletName" value="servlet1"/>
+    </bean>
+</blueprint>

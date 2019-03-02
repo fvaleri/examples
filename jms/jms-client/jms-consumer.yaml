@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: jms-consumer
+  labels:
+    app: jms-consumer
+spec:
+  backoffLimit: 0
+  completions: 1
+  parallelism: 1
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      name: jms-consumer
+      labels:
+        app: jms-consumer
+        job-name: jms-consumer
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: jms-consumer
+          image: quay.io/fvaleri/jms-client:latest
+          imagePullPolicy: Always
+          env:
+            - name: CLIENT_TYPE
+              value: "consumer"
+            - name: PROTOCOL_NAME
+              value: "amqp"
+            - name: CONNECTION_URL
+              value: "failover:(amqp://my-broker-all-0-svc:61617)?jms.prefetchPolicy.all=100"
+            - name: CONNECTION_USERNAME
+              value: "admin"
+            - name: CONNECTION_PASSWORD
+              value: "changeit"
+            - name: QUEUE_NAME
+              value: "my-queue"
+            - name: NUM_MESSAGES
+              value: "100000"
+            - name: PROCESSING_DELAY_MS
+              value: "1000"

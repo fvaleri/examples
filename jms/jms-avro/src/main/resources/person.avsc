@@ -1,0 +1,9 @@
+{
+   "namespace": "it.fvaleri.example",
+   "type": "record",
+   "name": "Person",
+   "fields": [
+       {"name": "name", "type": "string"},
+       {"name": "address", "type": ["string", "null"]}
+   ]
+}

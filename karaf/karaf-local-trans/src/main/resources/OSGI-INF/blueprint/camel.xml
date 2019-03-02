@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/blueprint" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+
+        <onException>
+            <exception>java.lang.Exception</exception>
+            <log message="ROLLBACK HANDLING: ${exception.message}" loggingLevel="INFO"/>
+            <log message="MESSAGE PAYLOAD: ${body}" loggingLevel="INFO"/>
+        </onException>
+
+        <route id="setup">
+            <from uri="timer:foo?repeatCount=1"/>
+            <!--transacted ref="required"/-->
+            <setHeader headerName="value">
+                <simple resultType="java.lang.exampleer">1</simple>
+            </setHeader>
+            <setBody>
+                <constant>hello</constant>
+            </setBody>
+            <!--to uri="sql:insert into snowflakes values (:#value), (:#value)"/-->
+            <to uri="direct:insert"/>
+            <log message="UPDATE COUNT: ${header.CamelSqlUpdateCount}" loggingLevel="INFO"/>
+        </route>
+
+        <!-- using two routes both the "TransactionErrorHandler" and "DefaultErrorHandler" are involved;
+            when the commit fail, changes are rolled back by the TX Manager on the transacted route,
+            but the exception is also propagated back to the caller route -->
+        <route id="test">
+            <from uri="direct:insert"/>
+            <transacted ref="required"/>
+            <to uri="sql:insert into snowflakes values (:#value), (:#value)"/>
+            <log message="QUERY EXECUTED" loggingLevel="INFO"/>
+        </route>
+    </camelContext>
+
+    <!-- generic pooling DS that uses a database-specific DS under the cover -->
+    <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+        <property name="driverClassName" value="org.postgresql.Driver"/>
+        <property name="url" value="jdbc:postgresql://localhost:5432/testdb"/>
+        <property name="username" value="admin"/>
+        <property name="password" value="admin"/>
+        <property name="defaultAutoCommit" value="false"/>
+        <property name="initialSize" value="10"/>
+        <property name="maxIdle" value="10"/>
+        <property name="maxActive" value="100"/>
+        <property name="maxWait" value="10000"/>
+        <property name="validationQuery" value="select 1"/>
+        <property name="testOnBorrow" value="true"/>
+        <property name="testOnReturn" value="false"/>
+        <property name="testWhileIdle" value="false"/>
+    </bean>
+
+    <bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <bean id="required" class="org.apache.camel.spring.spi.SpringTransactionPolicy">
+        <property name="transactionManager" ref="txManager"/>
+        <property name="propagationBehaviorName" value="PROPAGATION_REQUIRED"/>
+    </bean>
+
+    <bean id="sql" class="org.apache.camel.component.sql.SqlComponent">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+</blueprint>

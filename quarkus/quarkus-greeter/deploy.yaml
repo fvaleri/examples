@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quarkus-app
+  labels:
+    app: quarkus-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quarkus-app
+  template:
+    metadata:
+      labels:
+        app: quarkus-app
+    spec:
+      containers:
+        - name: quarkus-app
+          image: quay.io/fvaleri/quarkus-app:latest
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 200m
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          #readinessProbe/livenessProbe
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - quarkus-app
+                topologyKey: kubernetes.io/hostname

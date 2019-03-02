@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 https://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+    <!-- broker-specific, non-pooling, non-enlisting javax.jms.XAConnectionFactory -->
+    <bean id="artemisXACF" class="org.apache.activemq.artemis.jms.client.ActiveMQXAConnectionFactory">
+        <argument value="tcp://localhost:61616"/>
+        <argument value="admin"/>
+        <argument value="admin"/>
+        <property name="callTimeout" value="2000"/>
+        <property name="initialConnectAttempts" value="3"/>
+    </bean>
+
+    <!-- 
+        expose broker-specific CF with service properties;
+        no need to expose pooling, enlisting, non broker-specific javax.jms.XAConnectionFactory
+        because it is automatically registered by pax-jms-config 
+    -->
+    <service id="poolXACF" ref="artemisXACF" interface="javax.jms.XAConnectionFactory">
+        <service-properties>
+            <!-- "pool" key is needed for pax-jms-config to wrap broker-specific connection factory inside connection pool -->
+            <entry key="pool" value="narayana"/>
+            <entry key="xa" value="true"/>
+            <entry key="osgi.jndi.service.name" value="jms/artemisXACF"/>
+            <entry key="pool.maxConnections" value="10"/>
+            <entry key="pool.idleTimeout" value="10000"/>
+        </service-properties>
+    </service>
+</blueprint>

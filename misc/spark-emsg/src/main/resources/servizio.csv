@@ -1,0 +1,54 @@
+﻿"SER_CODICE","SER_SA_CODICE","SER_DESCRIZIONE","SER_DESC_BREVE","SER_SIGLA","SER_MESSAGE_SET","SER_MESSAGE_TYPE","SER_MESSAGE_FORMAT","SER_OPERATION"
+27,1,Richiesta Generazione Report,Richiesta Report,GEREP,,,,richGenerazioneReport
+1,1,Acquisizione Crediti TXT,Acq Crediti TXT,ACCRC,MsgSetSir,crediti,CSV1,inviaMessaggio
+2,1,Acquisizione Pagamenti Bolinc,Acq Pagamenti Bolinc,ACPOS,MsgSetSir,poste,CSV1,inviaMessaggio
+4,4,Acquisizione 290,Acquisizione 290,AC290,,,,nop
+3,3,Service Manager,Service Manager,SERVM,,,,nop
+7,1,Acquisizione Crediti XML,Acq Crediti XML,ACCRE,MsgSetSir,crediti,XML1,inviaMessaggio
+5,1,Acquisizione Sisal,Acquisizione Sisal,ACSIS,,,,nop
+6,1,Acquisizione Pagamenti Ftpdir,Acq Pagamenti Ftpdir,ACTAR,MsgSetSir,binario,CSV1,inviaMessaggio
+30,1,Richiesta Documento Reversale,Rich Doc Reversale,RIDSR,,,,richiestaPdfReversale
+31,1,Get Documento Reversale,Get Doc Reversale,SIDSR,,,,nop
+40,1,Invio Lotto Posizioni,Invio Lotto,INLOT,,,,invioLottoPosizioni
+41,1,Rich Risultato Lotto,Risultato Lotto,RILOT,,,,richRisultatoLotto
+48,1,Notifica Rend Pagam NodoPA,Notifica Rend Nodo,NORPN,,,,nop
+49,1,Post Invio Posizione Creditoria,Post Invio Posizione,NOPPP,,,,nop
+51,1,Certifica Anagrafica Pun,Certifica Anag Pun,CEANA,,,,certificaSoggetto
+8,1,Richiesta Pagamenti Posizione,Richiesta Pagamenti,RIPAG,,,,richPagamentiPosizione
+9,1,Invio Posizione Creditoria,Invio Posizione,INPOS,,,,invioPosizioneCreditoria
+10,1,Rendicon Coordinate Bilancio,Rend Coordinate,RICOO,,,,richFornituraCoordinate
+11,1,Notifica Pagamenti Posizione,Notifica Pagamenti,NOPAG,,,,notificaPagamenti
+13,1,Richiesta Dettaglio Posizione,Rich Dettaglio Pos,DEPOS,,,,richDettaglioPosizione
+14,1,Rich Rendicon Riconciliati,Rend Riconciliati,RERIC,,,,richRendicontazioneRiconciliati
+15,1,Recupero Forn Rendicontazione,Recupero Rendicon,FOREN,,,,richFornituraRendicontazione
+17,1,Acquisizione Pagamenti IMU,Acq Pagamenti IMU,ACIMU,,,,nop
+47,1,Esito Notifica Posizioni,Esito Notifica Pos,ESNOT,,,,nop
+50,1,Certifica Soggetti Batch,Certifica Sogg Batch,ACSOR,,,,nop
+52,1,Stampa Async Batch,Stampa Async Batch,STASY,,,,nop
+54,1,Notifica Posizioni Auc,Notifica Pos Auc,NPAUC,,,,nop
+12,6,Acquisizione Pagamenti Reversali,Acq Pag Reversali,ACREV,,,,nop
+25,1,Notifica Allegati Protocollo,Notifica Allegati,NOALL,,,,nop
+45,1,Richiesta Dettaglio Posizione Contrib,Rich Dett Pos Contr,RIDPC,,,,richDettPosizioneContribuente
+28,1,Richiesta Protocollo,Richiesta Protocollo,RIPRT,,,,nop
+29,1,Richiesta Organigramma,Richiesta Organigr,RIORG,,,,nop
+32,1,Ricerca Pagamenti,Ricerca Pagamenti,RICPA,,,,ricercaPagamenti
+33,1,Rich Dettaglio Pagamento,Dettaglio Pagamento,DETPA,,,,richDettaglioPagamento
+42,1,Rich Fornitura Pagamenti,Forn Pagamenti,FOPAG,,,,richFornituraPagamenti
+44,1,Accesso Servizio Negato,Accesso Negato,ACNEG,,,,nop
+46,1,Notifica Posizioni Pagabili Mas,Notifica Pos Mas,NOPOS,,,,nop
+43,1,Richiesta Posizioni Contribuente,Rich Posizioni Contr,RIPOC,,,,richPosizioniContribuente
+53,1,Rich Bollettino Posizione,Rich Bollettino,RBOLP,,,,richBollettinoPosizione
+16,1,Acquisizione Bonifici Poste,Acq Bonifici Poste,PTBON,,,,nop
+18,1,Predisponi Pagamento Bridge,Predisp Pagamento,PRPAG,,,,predisponiPagamento
+19,1,Ricerca Anagrafica Sisare,Ricerca Anagrafica,RIANA,,,,ricercaAnagraficaSisare
+20,1,Richiesta Posizione Sisare,Richiesta Posizione,RIPOS,,,,richiestaPosizioneSisare
+21,1,Chiedi Pagamenti Pago,Chiedi Pagamento,PACHI,,,,nop
+22,1,Ricerca Anagrafica Esterni,Ricerca Anagr Est,SIRIA,,,,nop
+23,1,Richiesta Posizione Esterni,Richiesta Posiz Est,SIRIP,,,,nop
+24,1,Servizio Generico Pago,Servizio Generico,PAREM,,,,nop
+36,1,Richiesta Risposta,Rich Risposta,RIRIS,,,,richiestaRisposta
+37,1,Invio Comunicazioni Prod,Invio Com Pro,INPRO,,,,invioComunicazioniProduzione
+38,1,Cancella Lotto,Cancella Lotto,CALOT,,,,cancellaLotto
+39,1,Rich Anteprima Lotto,Rich Ant Lotto,RIANT,,,,richAnteprimaLotto
+34,1,Invio Lista Carico,Invio Lis Car,INLIC,,,,nop
+35,1,Richiesta Risposta Lista Carico,Rich Risp Lis Car,RIRLC,,,,nop

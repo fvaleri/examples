@@ -1,0 +1,18 @@
+metadata:
+  labels:
+    app: spring-boot-rest-service-server
+    app.kubernetes.io/name: spring-boot-rest-service-client-server
+    app.kubernetes.io/part-of: spring-boot-rest-service
+    app.openshift.io/runtime: java
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - resources:
+            requests:
+              cpu: 0.5
+              memory: 128Mi
+            limits:
+              cpu: 1.0
+              memory: 256Mi

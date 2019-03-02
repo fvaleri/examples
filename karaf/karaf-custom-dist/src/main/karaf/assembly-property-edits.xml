@@ -1,0 +1,9 @@
+<property-edits xmlns="http://karaf.apache.org/tools/property-edits/1.0.0">
+    <edits>
+        <edit>
+            <file>config.properties</file>
+            <operation>remove</operation>
+            <key>org.apache.karaf.security.providers</key>
+        </edit>
+    </edits>
+</property-edits>

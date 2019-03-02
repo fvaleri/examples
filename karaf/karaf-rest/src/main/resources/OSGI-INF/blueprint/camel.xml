@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.3.0"
+           xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/blueprint" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+
+        <onException>
+            <exception>java.lang.Exception</exception>
+            <handled>
+                <constant>true</constant>
+            </handled>
+            <setHeader headerName="Exchange.HTTP_RESPONSE_CODE">
+                <constant>500</constant>
+            </setHeader>
+            <setBody>
+                <simple>${exception.message}\n</simple>
+            </setBody>
+        </onException>
+
+        <restConfiguration component="servlet" bindingMode="json" port="8181" apiContextPath="/doc" enableCORS="true">
+            <endpointProperty key="servletName" value="servlet1"/>
+            <dataFormatProperty key="prettyPrint" value="true"/>
+            <apiProperty key="api.title" value="Users API"/>
+            <apiProperty key="api.version" value="${project.version}"/>
+            <apiProperty key="cors" value="true"/>
+        </restConfiguration>
+
+        <rest path="/users" consumes="application/json" produces="application/json">
+            <description>User rest service</description>
+
+            <get outType="it.fvaleri.example.User[]">
+                <description>Find all users</description>
+                <to uri="direct:getAllUsers"/>
+            </get>
+
+            <get uri="/{userId}" outType="it.fvaleri.example.User">
+                <description>Find user by id</description>
+                <to uri="direct:getUserById"/>
+            </get>
+
+            <post type="it.fvaleri.example.User" outType="it.fvaleri.example.User">
+                <description>Create a new user</description>
+                <to uri="direct:insertUser"/>
+            </post>
+        </rest>
+
+        <!-- here we are using JDBC component with prepared statements with parameters to prevent SQL injection;
+            unlike SQL component, the JDBC one is liteweight but does not support transactions -->
+        <route id="getAllUsers">
+            <from uri="direct:getAllUsers"/>
+            <to uri="log:it.fvaleri.example?level=INFO&amp;showHeaders=true&amp;showBody=true"/>
+            <log message="*** Headers: ${headers} - Body: ${body}" loggingLevel="INFO"/>
+            <setBody>
+                <constant>SELECT id, name FROM users</constant>
+            </setBody>
+            <to uri="jdbc:dataSource?useHeadersAsParameters=true"/>
+            <log message="*** Headers: ${headers} - Body: ${body}" loggingLevel="INFO"/>
+        </route>
+
+        <route id="getUserById">
+            <from uri="direct:getUserById"/>
+            <log message="*** Headers: ${headers} - Body: ${body}" loggingLevel="INFO"/>
+            <setBody>
+                <constant>SELECT id, name FROM users WHERE id = :?userId</constant>
+            </setBody>
+            <to uri="jdbc:dataSource?useHeadersAsParameters=true"/>
+            <setBody>
+                <simple>${body[0]}</simple>
+            </setBody>
+            <log message="*** Headers: ${headers} - Body: ${body}" loggingLevel="INFO"/>
+        </route>
+
+        <route id="insertUser">
+            <from uri="direct:insertUser"/>
+            <log message="*** Headers: ${headers} - Body: ${body}" loggingLevel="INFO"/>
+            <setHeader headerName="userName">
+                <simple>${body.name}</simple>
+            </setHeader>
+            <setHeader headerName="CamelRetrieveGeneratedKeys">
+                <constant>true</constant>
+            </setHeader>
+            <setBody>
+                <constant>INSERT INTO users (name) VALUES (:?userName)</constant>
+            </setBody>
+            <to uri="jdbc:dataSource?useHeadersAsParameters=true"/>
+            <to uri="bean:rowProcessor"/>
+            <log message="*** Headers: ${headers} - Body: ${body}" loggingLevel="INFO"/>
+        </route>
+    </camelContext>
+
+    <bean id="rowProcessor" class="it.fvaleri.example.RowProcessor"/>
+
+    <!-- enable service auto reload after a org.ops4j.pax.web change (http service restart) -->
+    <cm:property-placeholder persistent-id="org.ops4j.pax.web" update-strategy="reload"/>
+
+    <!-- servlet setup for OSGi HttpService; the servletName must be unique inside the HTTP container -->
+    <reference id="httpService" interface="org.osgi.service.http.HttpService"/>
+    <bean id="camelServlet" class="org.apache.camel.component.servlet.CamelHttpTransportServlet"/>
+    <bean class="org.apache.camel.component.servlet.osgi.OsgiServletRegisterer" init-method="register"
+          destroy-method="unregister">
+        <property name="alias" value="/api"/>
+        <property name="httpService" ref="httpService"/>
+        <property name="servlet" ref="camelServlet"/>
+        <property name="servletName" value="servlet1"/>
+    </bean>
+
+    <!-- generic pooling, enlisting DS that uses a database-specific DS under the cover -->
+    <bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource" destroy-method="close">
+        <property name="driverClassName" value="org.postgresql.Driver"/>
+        <property name="url" value="jdbc:postgresql://localhost:5432/testdb"/>
+        <property name="username" value="admin"/>
+        <property name="password" value="admin"/>
+        <property name="initialSize" value="10"/>
+        <property name="maxTotal" value="100"/>
+    </bean>
+</blueprint>

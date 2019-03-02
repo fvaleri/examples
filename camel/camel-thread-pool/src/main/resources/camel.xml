@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/spring" streamCache="true" trace="false" threadNamePattern="#name#-#counter#">
+        <!-- 
+            Only when the queue is full new threads will be created up to "maxPoolSize".
+            - CU setup: poolSize="100" maxQueueSize="1000" maxPoolSize="500" keepAliveTime="180"
+            - My setup: poolSize="100" maxQueueSize="5" maxPoolSize="500" keepAliveTime="15"
+        -->
+        <threadPool id="customPool" poolSize="100" maxQueueSize="5" maxPoolSize="500" 
+            keepAliveTime="15" rejectedPolicy="CallerRuns" threadName="customPool" />
+        <jmxAgent id="agent" disabled="true"/>
+
+        <route id="start">
+            <from uri="direct:start" />
+            <recipientList stopOnException="false" executorServiceRef="customPool">
+                <simple>direct:125,direct:126,direct:127</simple>
+            </recipientList>
+        </route>
+
+        <route id="int125">
+            <from uri="direct:125"/>
+            <convertBodyTo type="java.lang.String"/>
+            <!--log message=">>> INT125 ROUTING STARTED" loggingLevel="INFO"/-->
+            <!-- simulating some work -->
+            <delay>
+                <constant>500</constant>
+            </delay>
+            <to uri="mock:result"/>
+        </route>
+
+        <route id="int126">
+            <from uri="direct:126"/>
+            <convertBodyTo type="java.lang.String"/>
+            <!--log message=">>> INT126 ROUTING STARTED" loggingLevel="INFO"/-->
+            <!-- simulating a slow consumer -->
+            <delay>
+                <constant>10000</constant>
+            </delay>
+            <to uri="mock:result"/>
+        </route>
+
+        <route id="int127">
+            <from uri="direct:127"/>
+            <convertBodyTo type="java.lang.String"/>
+            <!--log message=">>> INT127 ROUTING STARTED" loggingLevel="INFO"/-->
+            <!-- simulating some work -->
+            <delay>
+                <constant>1200</constant>
+            </delay>
+            <to uri="mock:result"/>
+        </route>
+
+    </camelContext>
+
+</beans>

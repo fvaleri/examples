@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/spring" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+
+        <onException>
+            <exception>java.lang.Exception</exception>
+            <handled>
+                <constant>true</constant>
+            </handled>
+            <setHeader headerName="Exchange.HTTP_RESPONSE_CODE">
+                <constant>500</constant>
+            </setHeader>
+            <setBody>
+                <simple>${exception.message}\n</simple>
+            </setBody>
+        </onException>
+
+        <restConfiguration component="servlet" bindingMode="json" port="8080" enableCORS="true">
+            <endpointProperty key="servletName" value="CamelServlet1"/>
+        </restConfiguration>
+
+        <rest consumes="application/json" produces="application/json">
+            <get uri="/edit/{id}">
+                <route streamCache="true">
+                    <log message="Request id: ${header.id}" loggingLevel="INFO"/>
+                    <removeHeaders pattern="CamelHttp*"/>
+                    <setHeader headerName="Exchange.HTTP_METHOD">
+                        <constant>GET</constant>
+                    </setHeader>
+                    <to uri="http4://jsonplaceholder.typicode.com/posts?bridgeEndpoint=true"/>
+                    <log message="Received body: ${body}" loggingLevel="DEBUG"/>
+                    <convertBodyTo type="java.lang.String"/>
+                </route>
+            </get>
+        </rest>
+    </camelContext>
+</beans>

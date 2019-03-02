@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<properties>
+    <!-- must be unique across all instances to ensure TMs can coordinate the same RMs -->
+    <entry key="CoreEnvironmentBean.nodeIdentifier">${env.NODE_IDENTIFIER:changeit}</entry>
+
+    <!-- by default the ObjectStore is crated under user.home -->
+    <entry key="ObjectStoreEnvironmentBean.objectStoreDir">target/store/${env.NODE_IDENTIFIER:changeit}</entry>
+
+    <!-- transaction timeout in seconds after which it is automatically rolled back -->
+    <entry key="CoordinatorEnvironmentBean.defaultTimeout">120</entry>
+    <entry key="CoordinatorEnvironmentBean.asyncCommit">NO</entry>
+    <entry key="CoordinatorEnvironmentBean.transactionStatusManagerEnable">NO</entry>
+
+    <!-- transaction recovery periods in seconds (modules executed sequentially) -->
+    <entry key="RecoveryEnvironmentBean.periodicRecoveryPeriod">120</entry>
+    <entry key="RecoveryEnvironmentBean.recoveryBackoffPeriod">10</entry>
+    <entry key="RecoveryEnvironmentBean.recoveryListener">NO</entry>
+    <entry key="RecoveryEnvironmentBean.recoveryModuleClassNames">
+        com.arjuna.ats.internal.jta.recovery.arjunacore.XARecoveryModule
+    </entry>
+
+    <!-- expiry period in hours for recovery ObjectStore entries (modules executed randomly) -->
+    <entry key="RecoveryEnvironmentBean.expiryScanInterval">12</entry>
+    <entry key="RecoveryEnvironmentBean.expiryScannerClassNames">
+        com.arjuna.ats.internal.arjuna.recovery.ExpiredTransactionStatusManagerScanner
+    </entry>
+</properties>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<features name="my-features">
+    <feature name="karaf-xa-activemq" version="${project.version}">
+
+        <!-- connector is needed for DS wrapper creation, aries.transaction.jdbc should be installed out of the box -->
+        <feature>connector</feature>
+        <bundle>mvn:org.apache.aries.transaction/org.apache.aries.transaction.jdbc/2.1.2</bundle>
+        <bundle>mvn:org.apache.geronimo.specs/geronimo-j2ee-connector_1.5_spec/2.0.0</bundle>
+
+        <!-- JDBC driver classes -->
+        <bundle>wrap:mvn:mysql/mysql-connector-java/${mysql.version}</bundle>
+
+        <!-- additional Camel features -->
+        <feature>camel-sql</feature>
+        <bundle>mvn:org.apache.camel/camel-jms/${camel.version}</bundle>
+
+        <!-- finally the example bundles -->
+        <bundle>mvn:${project.groupId}/karaf-xa-activemq-ds/${project.version}</bundle>
+        <bundle>mvn:${project.groupId}/karaf-xa-activemq-main/${project.version}</bundle>
+
+    </feature>
+</features>

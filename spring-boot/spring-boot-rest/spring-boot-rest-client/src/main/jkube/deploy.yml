@@ -1,0 +1,25 @@
+metadata:
+  annotations:
+    app.openshift.io/connects-to: spring-boot-rest-service-server
+  labels:  
+    app: spring-boot-rest-service-client
+    app.kubernetes.io/name: spring-boot-rest-service-client
+    app.kubernetes.io/part-of: spring-boot-rest-service
+    app.openshift.io/runtime: java
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - resources:
+            requests:
+              cpu: 0.5
+              memory: 128Mi
+            limits:
+              cpu: 1.0
+              memory: 256Mi
+          env:
+            - name: CLIENT_ENDPOINT
+              value: http://spring-boot-rest-service-server:8080/api/greet/fede
+            - name: CLIENT_PERIOD
+              value: 5000

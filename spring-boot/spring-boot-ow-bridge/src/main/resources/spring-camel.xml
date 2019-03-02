@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <camelContext xmlns="http://camel.apache.org/schema/spring" streamCache="true" trace="false">
+        <jmxAgent id="agent" disabled="true"/>
+        <!-- no onException: let TransactionErrorHandler to handle redeliveries (max 6) and TransactionManager to handle rollbacks -->
+
+        <route id="testRoute">
+            <from uri="timer:foo?repeatCount=1"/>
+            <to uri="sourceJms:queue:{{jms.source.queue}}"/>
+            <log message="Message sent to source"/>
+        </route>
+
+        <route id="bridgeRoute">
+            <from uri="sourceJms:queue:{{jms.source.queue}}"/>
+            <transacted/>
+            <log message="Message received from source"/>
+            <process ref="msgProcessor"/>
+            <to uri="destJms:queue:{{jms.dest.queue}}"/>
+            <log message="Message routed to destination"/>
+        </route>
+    </camelContext>
+
+    <bean id="msgProcessor" class="it.fvaleri.example.MsgProcessor">
+        <property name="raiseError" value="false"/>
+    </bean>
+
+    <!-- external TX manager without XA support -->
+    <bean id="txManager" class="org.springframework.jms.connection.JmsTransactionManager">
+        <property name="connectionFactory" ref="sourcePooledCF"/>
+    </bean>
+
+    <bean id="shutdown" class="org.apache.camel.impl.DefaultShutdownStrategy">
+        <property name="timeout" value="10"/>
+    </bean>
+
+    <!-- SOURCE BROKER SETUP -->
+    <bean id="sourceCF" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <!-- prefetch policy is needed only when consuming messages -->
+        <property name="brokerURL" value="failover:(tcp://${jms.source.address})?jms.prefetchPolicy.all=500"/>
+        <property name="userName" value="${jms.source.username}"/>
+        <property name="password" value="${jms.source.password}"/>
+    </bean>
+
+    <bean id="sourcePooledCF" class="org.apache.activemq.jms.pool.PooledConnectionFactory" init-method="start"
+          destroy-method="stop">
+        <property name="connectionFactory" ref="sourceCF"/>
+        <!-- we only need one connection and we want to keep it opened -->
+        <property name="maxConnections" value="1"/>
+        <property name="idleTimeout" value="0"/>
+    </bean>
+
+    <bean id="sourceJms" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <property name="connectionFactory" ref="sourcePooledCF"/>
+                <!-- we need to enable transactions to avoid losing messages -->
+                <property name="transacted" value="true"/>
+                <property name="transactionManager" ref="txManager"/>
+                <property name="concurrentConsumers" value="1"/>
+                <property name="maxConcurrentConsumers" value="1"/>
+                <property name="cacheLevelName" value="CACHE_CONSUMER"/>
+                <property name="receiveTimeout" value="100000"/>
+                <property name="disableReplyTo" value="true"/>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- DEST BROKER SETUP -->
+    <bean id="destCF" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <!-- set maxReconnectAttempts=0 to let the pooled CF to renew the connection -->
+        <property name="brokerURL" value="failover:(tcp://${jms.dest.address})?maxReconnectAttempts=0"/>
+        <property name="userName" value="${jms.dest.username}"/>
+        <property name="password" value="${jms.dest.password}"/>
+    </bean>
+
+    <bean id="destPooledCF" class="org.apache.activemq.jms.pool.PooledConnectionFactory" init-method="start"
+          destroy-method="stop">
+        <property name="connectionFactory" ref="destCF"/>
+        <property name="maxConnections" value="1"/>
+        <property name="idleTimeout" value="0"/>
+    </bean>
+
+    <bean id="destJms" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <!-- there is no need of caching on the producer -->
+                <property name="connectionFactory" ref="destPooledCF"/>
+                <property name="transacted" value="true"/>
+            </bean>
+        </property>
+    </bean>
+</beans>

@@ -1,0 +1,3 @@
+```sh
+mvn clean test
+```
