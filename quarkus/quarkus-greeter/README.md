@@ -12,9 +12,9 @@ mvn clean package -DskipTests -Pnative
 
 # build Linux executable and run on K8s
 mvn clean package -DskipTests -Pnative
-docker login quay.io -u fvaleri
-docker build -f Dockerfile -t quay.io/fvaleri/quarkus-app:latest .
-docker push quay.io/fvaleri/quarkus-app:latest
+docker login ghcr.io -u fvaleri
+docker build -f Dockerfile -t ghcr.io/fvaleri/quarkus-app:latest .
+docker push ghcr.io/fvaleri/quarkus-app:latest
 rm -rf $HOME/.docker/config.json
 
 kubectl create ns test

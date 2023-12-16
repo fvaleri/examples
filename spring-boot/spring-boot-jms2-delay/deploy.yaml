@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: spring-boot-app
-          image: quay.io/fvaleri/spring-boot-app:latest
+          image: ghcr.io/fvaleri/spring-boot-app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

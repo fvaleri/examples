@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: kafka-txn
-          image: quay.io/fvaleri/kafka-txn:latest
+          image: ghcr.io/fvaleri/kafka-txn:latest
           env:
             - name: BOOTSTRAP_SERVERS
               value: "my-cluster-kafka-bootstrap:9092"

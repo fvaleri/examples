@@ -19,7 +19,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: kafka-producer
-          image: quay.io/fvaleri/kafka-client:latest
+          image: ghcr.io/fvaleri/kafka-client:latest
           imagePullPolicy: Always
           env:
             - name: CLIENT_TYPE

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: quarkus-app
-          image: quay.io/fvaleri/quarkus-app:latest
+          image: ghcr.io/fvaleri/quarkus-app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

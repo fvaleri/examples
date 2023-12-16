@@ -19,7 +19,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: jms-producer
-          image: quay.io/fvaleri/jms-client:latest
+          image: ghcr.io/fvaleri/jms-client:latest
           imagePullPolicy: Always
           env:
             - name: CLIENT_TYPE

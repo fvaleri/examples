@@ -1,4 +1,4 @@
-FROM quay.io/quarkus/quarkus-distroless-image:1.0
+FROM ghcr.io/quarkus/quarkus-distroless-image:1.0
 COPY target/*-runner /application
 
 EXPOSE 8080

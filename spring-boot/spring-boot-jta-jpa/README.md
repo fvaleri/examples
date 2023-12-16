@@ -23,7 +23,7 @@ docker run --name artemis \
   -e AMQ_USER=admin \
   -e AMQ_PASSWORD=admin \
   -d -p 61616:61616 \
-  quay.io/artemiscloud/activemq-artemis-broker
+  ghcr.io/artemiscloud/activemq-artemis-broker
 
 # run the application
 export NODE_IDENTIFIER="myid0"
