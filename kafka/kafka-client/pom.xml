@@ -17,7 +17,6 @@
 
         <kafka.version>3.6.1</kafka.version>
         <strimzi-oauth.version>0.14.0</strimzi-oauth.version>
-        <strimzi-kube-config.version>1.1.2</strimzi-kube-config.version>
         <jackson-dataformat-yaml.version>2.14.2</jackson-dataformat-yaml.version>
         <slf4j.version>2.0.9</slf4j.version>
 
@@ -37,11 +36,6 @@
             <groupId>io.strimzi</groupId>
             <artifactId>kafka-oauth-client</artifactId>
             <version>${strimzi-oauth.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>kafka-kubernetes-config-provider</artifactId>
-            <version>${strimzi-kube-config.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

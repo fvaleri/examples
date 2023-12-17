@@ -18,14 +18,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.LongDeserializer;
 
-import static it.fvaleri.example.Configuration.BOOTSTRAP_SERVERS;
-import static it.fvaleri.example.Configuration.CLIENT_ID;
-import static it.fvaleri.example.Configuration.CONSUMER_CONFIG;
-import static it.fvaleri.example.Configuration.GROUP_ID;
-import static it.fvaleri.example.Configuration.NUM_MESSAGES;
-import static it.fvaleri.example.Configuration.POLL_TIMEOUT_MS;
-import static it.fvaleri.example.Configuration.PROCESSING_DELAY_MS;
-import static it.fvaleri.example.Configuration.TOPIC_NAME;
 import static java.time.Duration.ofMillis;
 import static java.util.Collections.singleton;
 
@@ -42,22 +34,22 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
         // the consumer instance is NOT thread safe
         try (var consumer = createKafkaConsumer()) {
             kafkaConsumer = consumer;
-            consumer.subscribe(singleton(TOPIC_NAME), this);
-            LOG.info("Subscribed to {}", TOPIC_NAME);
-            while (!closed.get() && messageCount.get() < NUM_MESSAGES) {
+            consumer.subscribe(singleton(Configuration.TOPIC_NAME), this);
+            LOG.info("Subscribed to {}", Configuration.TOPIC_NAME);
+            while (!closed.get() && messageCount.get() < Configuration.NUM_MESSAGES) {
                 try {
                     // next poll must be called within session.timeout.ms to avoid rebalance
                     // FindCoordinator(any), OffsetFetch(group-coord), Metadata(any), Fetch(leader)
-                    ConsumerRecords<Long, byte[]> records = consumer.poll(ofMillis(POLL_TIMEOUT_MS));
+                    ConsumerRecords<Long, byte[]> records = consumer.poll(ofMillis(Configuration.POLL_TIMEOUT_MS));
                     if (!records.isEmpty()) {
                         for (ConsumerRecord<Long, byte[]> record : records) {
                             LOG.debug("Record fetched from {}-{} with offset {}",
                                 record.topic(), record.partition(), record.offset());
-                            sleep(PROCESSING_DELAY_MS);
+                            sleep(Configuration.PROCESSING_DELAY_MS);
                             // we only add to pending offsets after processing
                             pendingOffsets.put(new TopicPartition(record.topic(), record.partition()),
                                 new OffsetAndMetadata(record.offset() + 1, null));
-                            if (messageCount.incrementAndGet() == NUM_MESSAGES) {
+                            if (messageCount.incrementAndGet() == Configuration.NUM_MESSAGES) {
                                 break;
                             }
                         }
@@ -82,14 +74,14 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
 
     private KafkaConsumer<Long, byte[]> createKafkaConsumer() {
         Properties props = new Properties();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
-        props.put(ConsumerConfig.CLIENT_ID_CONFIG, CLIENT_ID);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, Configuration.BOOTSTRAP_SERVERS);
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, Configuration.CLIENT_ID);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, Configuration.GROUP_ID);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, LongDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-        addConfig(props, CONSUMER_CONFIG);
-        addSharedConfig(props);
+        addConfig(props, Configuration.CONSUMER_CONFIG);
+        addSecurityConfig(props);
         return new KafkaConsumer<>(props);
     }
 

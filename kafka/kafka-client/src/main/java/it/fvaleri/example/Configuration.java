@@ -22,23 +22,26 @@ public class Configuration {
     public static final long NUM_MESSAGES = getOrDefault("num.messages", Long.MAX_VALUE, Long::parseLong);
     public static final long PROCESSING_DELAY_MS = getOrDefault("processing.delay.ms", 0L, Long::parseLong);
     public static final long POLL_TIMEOUT_MS = getOrDefault("poll.timeout.ms", 1_000L, Long::parseLong);
-    public static final long MAX_RETRIES = getOrDefault("max.retries", 5, Integer::parseInt);
-    public static final long RETRY_BACKOFF_MS = getOrDefault("retry.backoff.ms", 5_000L, Long::parseLong);
 
     public static final String BOOTSTRAP_SERVERS = getOrDefault("bootstrap.servers", null);
     public static final String CLIENT_ID = getOrDefault("client.id", "client-" + UUID.randomUUID());
     public static final String SECURITY_PROTOCOL = getOrDefault("security.protocol", "PLAINTEXT");
-    public static final String TOPIC_NAME = getOrDefault("topic.name", "my-topic");
-    public static final String GROUP_ID = getOrDefault("group.id", "my-group");
+    public static final String TOPIC_NAME = getOrDefault("topic.name", null);
+    public static final String GROUP_ID = getOrDefault("group.id", "group-" + UUID.randomUUID());
 
     public static final String ADMIN_CONFIG = getOrDefault("admin.config", null);
     public static final String PRODUCER_CONFIG = getOrDefault("producer.config", null);
     public static final String CONSUMER_CONFIG = getOrDefault("consumer.config", null);
 
-    public static final String SSL_TRUSTSTORE_TYPE = getOrDefault("ssl.truststore.type", "PKCS12");
+    public static final boolean SSL_HOSTNAME_VERIFICATION = getOrDefault("ssl.hostname.verification", true, Boolean::parseBoolean);
+    public static final String SSL_TRUSTSTORE_TYPE = getOrDefault("ssl.truststore.type", null);
+    public static final String SSL_TRUSTSTORE_CERTIFICATES = getOrDefault("ssl.truststore.certificates", null);
     public static final String SSL_TRUSTSTORE_LOCATION = getOrDefault("ssl.truststore.location", null);
     public static final String SSL_TRUSTSTORE_PASSWORD = getOrDefault("ssl.truststore.password", null);
-    public static final String SSL_KEYSTORE_TYPE= getOrDefault("ssl.keystore.type", "PKCS12");
+
+    public static final String SSL_KEYSTORE_TYPE= getOrDefault("ssl.keystore.type", null); 
+    public static final String SSL_KEYSTORE_CERTIFICATE_CHAIN = getOrDefault("ssl.keystore.certificate.chain", null);
+    public static final String SSL_KEYSTORE_KEY = getOrDefault("ssl.keystore.key", null);
     public static final String SSL_KEYSTORE_LOCATION = getOrDefault("ssl.keystore.location", null);
     public static final String SSL_KEYSTORE_PASSWORD = getOrDefault("ssl.keystore.password", null);
 
@@ -49,17 +52,13 @@ public class Configuration {
     public static final String SASL_OAUTH_CLIENT_ID = getOrDefault("sasl.oauth.client.id", null);
     public static final String SASL_OAUTH_CLIENT_SECRET = getOrDefault("sasl.oauth.client.secret", null);
 
-    public static final String KUBE_NAMESPACE = getOrDefault("kube.namespace", null);
-    public static final String KUBE_CLUSTER = getOrDefault("kube.cluster", null);
-    public static final String KUBE_USER = getOrDefault("kube.user", null);
-
     private Configuration() {
     }
-
+    
     static {
         LOG.info("=======================================================");
         CONFIG.forEach((k, v) -> LOG.info("{}: {}", k,
-            k.toLowerCase(Locale.ROOT).contains("password") && v != null ? "*****" : v));
+            (contains(k, "password", "keystore.key") && v != null) ? "*****" : v));
         LOG.info("=======================================================");
     }
 
@@ -87,5 +86,14 @@ public class Configuration {
         }
         CONFIG.put(key, String.valueOf(returnValue));
         return returnValue;
+    }
+
+    private static boolean contains(String key, String... words) {
+        for (String word : words) {
+            if (key.contains(word)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

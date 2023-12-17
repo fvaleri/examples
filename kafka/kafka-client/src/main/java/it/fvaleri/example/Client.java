@@ -107,7 +107,7 @@ public abstract class Client extends Thread {
         props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(AdminClientConfig.CLIENT_ID_CONFIG, "client" + UUID.randomUUID());
         addConfig(props, Configuration.ADMIN_CONFIG);
-        addSharedConfig(props);
+        addSecurityConfig(props);
         try (Admin admin = Admin.create(props)) {
             // use default RF to avoid NOT_ENOUGH_REPLICAS error with minISR>1
             short replicationFactor = -1;
@@ -138,31 +138,43 @@ public abstract class Client extends Thread {
         }
         props.putAll(addProps);
     }
-
-    void addSharedConfig(Properties props) {
+    
+    void addSecurityConfig(Properties props) {
         props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, Configuration.SECURITY_PROTOCOL);
-        if (Configuration.SSL_TRUSTSTORE_LOCATION != null) {
-            props.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, Configuration.SSL_TRUSTSTORE_LOCATION);
-            props.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, Configuration.SSL_TRUSTSTORE_PASSWORD);
+        if (Configuration.SSL_HOSTNAME_VERIFICATION)   {
+            props.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "HTTPS");
+        } else {
+            props.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
+        }
+        if (Configuration.SSL_TRUSTSTORE_TYPE != null) {
             props.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, Configuration.SSL_TRUSTSTORE_TYPE);
-            if (Configuration.SSL_KEYSTORE_LOCATION != null) {
-                props.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, Configuration.SSL_KEYSTORE_LOCATION);
-                props.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, Configuration.SSL_KEYSTORE_PASSWORD);
-                props.put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, Configuration.SSL_KEYSTORE_TYPE);
+            switch (Configuration.SSL_TRUSTSTORE_TYPE) {
+                case "PEM":
+                    props.put(SslConfigs.SSL_TRUSTSTORE_CERTIFICATES_CONFIG, Configuration.SSL_TRUSTSTORE_CERTIFICATES);
+                    break;
+                case "PKCS12":
+                case "JKS":
+                    props.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, Configuration.SSL_TRUSTSTORE_LOCATION);
+                    props.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, Configuration.SSL_TRUSTSTORE_PASSWORD);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported truststore type");
             }
-        } else if (Configuration.KUBE_NAMESPACE != null) {
-            // Kubernetes config provider: config data is extracted directly from the Kubernetes API
-            props.put("config.providers", "secrets");
-            props.put("config.providers.secrets.class", "io.strimzi.kafka.KubernetesSecretConfigProvider");
-            props.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, "PEM");
-            props.put(SslConfigs.SSL_TRUSTSTORE_CERTIFICATES_CONFIG,
-                format("${secrets:%s/%s-cluster-ca-cert:ca.crt}", Configuration.KUBE_NAMESPACE, Configuration.KUBE_CLUSTER));
-            if (Configuration.KUBE_USER != null) {
-                props.put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, "PEM");
-                props.put(SslConfigs.SSL_KEYSTORE_CERTIFICATE_CHAIN_CONFIG,
-                    format("${secrets:%s/%s:user.crt}", Configuration.KUBE_NAMESPACE, Configuration.KUBE_USER));
-                props.put(SslConfigs.SSL_KEYSTORE_KEY_CONFIG,
-                    format("${secrets:%s/%s:user.key}", Configuration.KUBE_NAMESPACE, Configuration.KUBE_USER));
+        }
+        if (Configuration.SSL_KEYSTORE_TYPE != null) {
+            props.put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, Configuration.SSL_KEYSTORE_TYPE);
+            switch (Configuration.SSL_KEYSTORE_TYPE) {
+                case "PEM":
+                    props.put(SslConfigs.SSL_KEYSTORE_CERTIFICATE_CHAIN_CONFIG, Configuration.SSL_KEYSTORE_CERTIFICATE_CHAIN);
+                    props.put(SslConfigs.SSL_KEYSTORE_KEY_CONFIG, Configuration.SSL_KEYSTORE_KEY);
+                    break;
+                case "PKCS12":
+                case "JKS":
+                    props.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, Configuration.SSL_KEYSTORE_LOCATION);
+                    props.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, Configuration.SSL_KEYSTORE_PASSWORD);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported keystore type");
             }
         }
         if (Configuration.SASL_MECHANISM != null) {
