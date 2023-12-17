@@ -15,10 +15,10 @@ docker login ghcr.io -u fvaleri
 docker push ghcr.io/fvaleri/kafka-txn:latest
 rm -rf ~/.docker/config.json
 
-kubectl create -f kafka-txn.yaml
+kubectl create -f statefulset.yaml
   
-kubectl run client -q --restart="Never" --image="ghcr.io/strimzi/kafka:latest-kafka-3.5.1" -- \
+kubectl run client -q --restart="Never" --image="ghcr.io/strimzi/kafka:latest-kafka-3.6.1" -- \
   bin/kafka-console-producer.sh --bootstrap-server :9092 --topic input-topic
-kubectl run client -q --restart="Never" --image="ghcr.io/strimzi/kafka:latest-kafka-3.5.1" -- \
+kubectl run client -q --restart="Never" --image="ghcr.io/strimzi/kafka:latest-kafka-3.6.1" -- \
   bin/kafka-console-consumer.sh --bootstrap-server :9092 --topic output-topic --from-beginning
 ```
