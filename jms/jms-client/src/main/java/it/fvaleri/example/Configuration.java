@@ -24,14 +24,12 @@ public class Configuration {
     public static final long NUM_MESSAGES = getOrDefault("num.messages", Long.MAX_VALUE, Long::parseLong);
     public static final long PROCESSING_DELAY_MS = getOrDefault("processing.delay.ms", 0L, Long::parseLong);
     public static final long RECEIVE_TIMEOUT_MS = getOrDefault("receive.timeout.ms", 10_000L, Long::parseLong);
-    public static final long MAX_RETRIES = getOrDefault("max.retries", 5, Integer::parseInt);
-    public static final long RETRY_BACKOFF_MS = getOrDefault("retry.backoff.ms", 5_000L, Long::parseLong);
     public static final boolean ENABLE_TXN = getOrDefault("enable.txn", false, Boolean::parseBoolean);
     public static final int TXN_BATCH_MSGS = getOrDefault("txn.batch.msgs", 100, Integer::parseInt);
 
     public static final String CLIENT_ID = getOrDefault("client.id", "client-" + UUID.randomUUID());
-    public static final String QUEUE_NAME = getOrDefault("queue.name", "my-queue");
-    public static final String TOPIC_NAME = getOrDefault("topic.name", "my-topic");
+    public static final String QUEUE_NAME = getOrDefault("queue.name", null);
+    public static final String TOPIC_NAME = getOrDefault("topic.name", null);
     public static final String SUBSCRIPTION_NAME = getOrDefault("subscription.name", null);
     public static final int MESSAGE_DELIVERY = getOrDefault("message.delivery", DeliveryMode.PERSISTENT, Integer::parseInt);
     public static final int MESSAGE_PRIORITY = getOrDefault("message.priority", 4, Integer::parseInt);
@@ -53,7 +51,7 @@ public class Configuration {
     static {
         LOG.info("=======================================================");
         CONFIG.forEach((k, v) -> LOG.info("{}: {}", k,
-            k.toLowerCase(Locale.ROOT).contains("password") && v != null ? "*****" : v));
+            (contains(k, "password", "keystore.key") && v != null) ? "*****" : v));
         LOG.info("=======================================================");
     }
 
@@ -81,5 +79,14 @@ public class Configuration {
         }
         CONFIG.put(key, String.valueOf(returnValue));
         return returnValue;
+    }
+
+    private static boolean contains(String key, String... words) {
+        for (String word : words) {
+            if (key.contains(word)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -11,6 +11,44 @@ spec:
     retention.ms: 7200000
     segment.bytes: 1073741824
 ---
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: my-producer-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: my-topic
+        operations: [ Write, Create, Describe ]
+---
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: my-consumer-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: my-topic
+        operations: [ Read, Describe ]
+      - resource:
+          type: group
+          name: my-group
+        operations: [ Read ]
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,6 +66,7 @@ spec:
       containers:
         - name: my-producer
           image: ghcr.io/fvaleri/kafka-client:latest
+          imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -54,6 +93,18 @@ spec:
                 secretKeyRef:
                   name: my-cluster-cluster-ca-cert
                   key: ca.crt
+            - name: SSL_KEYSTORE_TYPE
+              value: "PEM"
+            - name: SSL_KEYSTORE_CERTIFICATE_CHAIN
+              valueFrom:
+                secretKeyRef:
+                  name: my-producer-user
+                  key: user.crt
+            - name: SSL_KEYSTORE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: my-producer-user
+                  key: user.key
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -88,7 +139,7 @@ spec:
             - name: GROUP_ID
               value: "my-group"
             - name: TOPIC_NAME
-              value: "my-topic"
+              value: "my-topic"           
             - name: PROCESSING_DELAY_MS
               value: "500"
             - name: SECURITY_PROTOCOL
@@ -100,3 +151,15 @@ spec:
                 secretKeyRef:
                   name: my-cluster-cluster-ca-cert
                   key: ca.crt
+            - name: SSL_KEYSTORE_TYPE
+              value: "PEM"
+            - name: SSL_KEYSTORE_CERTIFICATE_CHAIN
+              valueFrom:
+                secretKeyRef:
+                  name: my-consumer-user
+                  key: user.crt
+            - name: SSL_KEYSTORE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: my-consumer-user
+                  key: user.key

@@ -7,18 +7,15 @@ mvn compile exec:java -q
 bin/kafka-console-producer.sh --bootstrap-server :9092 --topic input-topic
 bin/kafka-console-consumer.sh --bootstrap-server :9092 --topic output-topic --from-beginning
 
-# build and run on Kube
+# build and run on Minikube
 mvn clean package
 
-docker build -t ghcr.io/fvaleri/kafka-txn:latest .
-docker login ghcr.io -u fvaleri 
-docker push ghcr.io/fvaleri/kafka-txn:latest
-rm -rf ~/.docker/config.json
+minikube start
+eval "$(minikube docker-env)" && docker build -t ghcr.io/fvaleri/kafka-txn:latest .
+docker system prune -f; eval "$(minikube docker-env --unset)"
+sed -E "s/imagePullPolicy: .*/imagePullPolicy: Never/g" src/main/kube/statefulset.yaml | kubectl create -f -
 
-kubectl create -f kafka-txn.yaml
-  
-kubectl run client -q --restart="Never" --image="ghcr.io/strimzi/kafka:latest-kafka-3.5.1" -- \
-  bin/kafka-console-producer.sh --bootstrap-server :9092 --topic input-topic
-kubectl run client -q --restart="Never" --image="ghcr.io/strimzi/kafka:latest-kafka-3.5.1" -- \
-  bin/kafka-console-consumer.sh --bootstrap-server :9092 --topic output-topic --from-beginning
+krun() { kubectl run krun-"$(date +%s)" -itq --rm --restart="Never" --image="quay.io/strimzi/kafka:latest-kafka-3.6.1" -- sh -c "$*; exit 0"; }
+krun bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic input-topic
+krun bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic output-topic --from-beginning
 ```

@@ -66,6 +66,7 @@ spec:
       containers:
         - name: my-producer
           image: ghcr.io/fvaleri/kafka-client:latest
+          imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

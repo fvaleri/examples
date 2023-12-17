@@ -42,7 +42,7 @@ public class Configuration {
     static {
         LOG.info("=======================================================");
         CONFIG.forEach((k, v) -> LOG.info("{}: {}", k,
-            k.toLowerCase(Locale.ROOT).contains("password") && v != null ? "*****" : v));
+            (contains(k, "password", "keystore.key") && v != null) ? "*****" : v));
         LOG.info("=======================================================");
     }
 
@@ -70,5 +70,14 @@ public class Configuration {
         }
         CONFIG.put(key, String.valueOf(returnValue));
         return returnValue;
+    }
+
+    private static boolean contains(String key, String... words) {
+        for (String word : words) {
+            if (key.contains(word)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
