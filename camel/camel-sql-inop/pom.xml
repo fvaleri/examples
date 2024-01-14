@@ -13,7 +13,6 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.source.version>1.8</java.source.version>
         <java.target.version>1.8</java.target.version>
-
         <!--
             2.17.0 SQLException: Number of parameters mismatch
             2.18.1 OK
@@ -23,7 +22,6 @@
         <jaxb.version>2.3.1</jaxb.version>
         <slf4j.version>2.0.5</slf4j.version>
         <junit.version>4.12</junit.version>
-
         <plugin.compiler.version>3.10.1</plugin.compiler.version>
         <plugin.surefire.version>2.22.2</plugin.surefire.version>
     </properties>

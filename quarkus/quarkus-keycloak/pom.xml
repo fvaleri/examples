@@ -13,9 +13,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.source.version>11</java.source.version>
         <java.target.version>11</java.target.version>
-
         <quarkus.version>2.7.6.Final</quarkus.version>
-
         <plugin.compiler.version>3.10.1</plugin.compiler.version>
         <plugin.surefire.version>3.0.0-M5</plugin.surefire.version>
     </properties>

@@ -13,9 +13,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.source.version>11</java.source.version>
         <java.target.version>11</java.target.version>
-
         <fuse.version>7.10.0.fuse-sb2-7_10_1-00008-redhat-00001</fuse.version>
-
         <plugin.compiler.version>3.10.1</plugin.compiler.version>
     </properties>
 

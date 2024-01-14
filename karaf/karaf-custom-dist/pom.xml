@@ -14,9 +14,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.source.version>1.8</java.source.version>
         <java.target.version>1.8</java.target.version>
-
         <fuse.version>7.3.1.fuse-731003-redhat-00003</fuse.version>
-
         <plugin.compiler.version>3.10.1</plugin.compiler.version>
         <plugin.bundle.version>2.5.3</plugin.bundle.version>
         <plugin.install.version>2.5.2</plugin.install.version>

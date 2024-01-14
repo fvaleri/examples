@@ -26,6 +26,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,8 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 
 public class Main {
+    private static final int MAX_RETRIES = 5;
+    
     private static String bootstrapServers, groupId, instanceId, inputTopic, outputTopic;
     private static volatile boolean closed = false;
 
@@ -61,14 +64,16 @@ public class Main {
     }
 
     public static void main(String[] args) {
+        int retries = 0;
         System.out.printf("Starting instance %s%n", instanceId);
         try (var producer = createKafkaProducer();
              var consumer = createKafkaConsumer()) {
             createTopics(inputTopic, outputTopic);
             // called first and once to fence zombies and abort any pending transaction
             producer.initTransactions();
+            
             consumer.subscribe(singleton(inputTopic));
-
+            
             while (!closed) {
                 try {
                     System.out.println("Waiting for new data");
@@ -91,6 +96,7 @@ public class Main {
 
                         // commit the transaction including offsets
                         producer.commitTransaction();
+                        retries = 0;
                     }
                 } catch (AuthorizationException | UnsupportedVersionException | ProducerFencedException
                          | FencedInstanceIdException | OutOfOrderSequenceException | SerializationException e) {
@@ -102,10 +108,14 @@ public class Main {
                     System.out.println("Invalid or no offset found, using latest");
                     consumer.seekToEnd(e.partitions());
                     consumer.commitSync();
+                    retries = 0;
                 } catch (KafkaException e) {
-                    // abort the transaction and retry
+                    // abort the transaction and continue
+                    // in a real world application you would need to send these 
+                    // records to a DLT (dead letter topic) for further processing
                     System.err.printf("Aborting transaction: %s%n", e);
                     producer.abortTransaction();
+                    retries = maybeRetry(retries, consumer);
                 }
             }
         } catch (Throwable e) {
@@ -172,5 +182,43 @@ public class Main {
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
+    }
+
+    /**
+     * When we get a generic {@code KafkaException} while processing records, we retry up to {@code MAX_RETRIES} times.
+     * If we exceed this threshold, we log an error and move on to the next batch of records.
+     * In a real world application you may want to to send these records to a dead letter topic (DLT) for further processing.
+     *
+     * @param retries Current number of retries
+     * @param consumer Consumer instance
+     * @return Updated number of retries
+     */
+    private static int maybeRetry(int retries, KafkaConsumer<String, String> consumer) {
+        if (retries < 0) {
+            System.err.println("The number of retries must be greater than zero");
+            closed = true;
+        }
+
+        if (retries < MAX_RETRIES) {
+            // retry: reset fetch offset
+            // the consumer fetch position needs to be restored to the committed offset before the transaction started
+            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(consumer.assignment());
+            consumer.assignment().forEach(tp -> {
+                OffsetAndMetadata offsetAndMetadata = committed.get(tp);
+                if (offsetAndMetadata != null) {
+                    consumer.seek(tp, offsetAndMetadata.offset());
+                } else {
+                    consumer.seekToBeginning(Collections.singleton(tp));
+                }
+            });
+            retries++;
+        } else {
+            // continue: skip records
+            // the consumer fetch position needs to be committed as if records were processed successfully
+            System.err.printf("Skipping records after %d retries%n", MAX_RETRIES);
+            consumer.commitSync();
+            retries = 0;
+        }
+        return retries;
     }
 }

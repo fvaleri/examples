@@ -1,0 +1,87 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: my-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 7200000
+    segment.bytes: 1073741824
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-producer
+  template:
+    metadata:
+      labels:
+        app: my-producer
+    spec:
+      containers:
+        - name: my-producer
+          image: ghcr.io/fvaleri/kafka-client:latest
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: CLIENT_TYPE
+              value: "producer"
+            - name: BOOTSTRAP_SERVERS
+              value: "my-cluster-kafka-bootstrap:9092"
+            - name: TOPIC_NAME
+              value: "my-topic"
+            - name: PROCESSING_DELAY_MS
+              value: "500"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-consumer
+  template:
+    metadata:
+      labels:
+        app: my-consumer
+    spec:
+      containers:
+        - name: my-consumer
+          image: ghcr.io/fvaleri/kafka-client:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: CLIENT_TYPE
+              value: "consumer"
+            - name: BOOTSTRAP_SERVERS
+              value: "my-cluster-kafka-bootstrap:9092"
+            - name: GROUP_ID
+              value: "my-group"              
+            - name: TOPIC_NAME
+              value: "my-topic"
+            - name: NUM_MESSAGES
+              value: "2147483647"
+            - name: PROCESSING_DELAY_MS
+              value: "500"

@@ -1,0 +1,159 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: my-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 7200000
+    segment.bytes: 1073741824
+---
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: my-producer-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: my-topic
+        operations: [ Write, Create, Describe ]
+---
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaUser
+metadata:
+  name: my-consumer-user
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: my-topic
+        operations: [ Read, Describe ]
+      - resource:
+          type: group
+          name: my-group
+        operations: [ Read ]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-producer
+  template:
+    metadata:
+      labels:
+        app: my-producer
+    spec:
+      containers:
+        - name: my-producer
+          image: ghcr.io/fvaleri/kafka-client:latest
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: CLIENT_TYPE
+              value: "producer"
+            - name: BOOTSTRAP_SERVERS
+              value: "my-cluster-kafka-bootstrap:9093"
+            - name: TOPIC_NAME
+              value: "my-topic"
+            - name: PROCESSING_DELAY_MS
+              value: "500"
+            - name: SECURITY_PROTOCOL
+              value: "SASL_SSL"
+            - name: SSL_TRUSTSTORE_TYPE
+              value: "PEM"
+            - name: SSL_TRUSTSTORE_CERTIFICATES
+              valueFrom:
+                secretKeyRef:
+                  name: my-cluster-cluster-ca-cert
+                  key: ca.crt
+            - name: SASL_MECHANISM
+              value: "SCRAM-SHA-512"
+            - name: SASL_USERNAME
+              value: "my-producer-user"
+            - name: SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-producer-user
+                  key: password
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-consumer
+  template:
+    metadata:
+      labels:
+        app: my-consumer
+    spec:
+      containers:
+        - name: my-consumer
+          image: ghcr.io/fvaleri/kafka-client:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: CLIENT_TYPE
+              value: "consumer"
+            - name: BOOTSTRAP_SERVERS
+              value: "my-cluster-kafka-bootstrap:9093"
+            - name: SECURITY_PROTOCOL
+              value: "SSL"
+            - name: SSL_TRUSTSTORE_TYPE
+              value: "PEM"
+            - name: SSL_TRUSTSTORE_CERTIFICATES
+              valueFrom:
+                secretKeyRef:
+                  name: my-cluster-cluster-ca-cert
+                  key: ca.crt
+            - name: SASL_MECHANISM
+              value: "SCRAM-SHA-512"
+            - name: SASL_USERNAME
+              value: "my-consumer-user"
+            - name: SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-consumer-user
+                  key: password
+            - name: GROUP_ID
+              value: "my-group"
+            - name: TOPIC_NAME
+              value: "my-topic"
+            - name: PROCESSING_DELAY_MS
+              value: "500"

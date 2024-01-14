@@ -13,9 +13,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.source.version>17</java.source.version>
         <java.target.version>17</java.target.version>
-
         <junit.version>5.10.0</junit.version>
-
         <plugin.compiler.version>3.11.0</plugin.compiler.version>
         <plugin.surefire.version>3.2.1</plugin.surefire.version>
     </properties>

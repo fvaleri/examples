@@ -14,11 +14,9 @@
         <java.source.version>17</java.source.version>
         <java.target.version>17</java.target.version>
         <main.class>it.fvaleri.example.Main</main.class>
-
         <qpid.version>2.1.0</qpid.version>
         <avro.version>1.11.1</avro.version>
         <slf4j.version>2.0.5</slf4j.version>
-
         <plugin.compiler.version>3.10.1</plugin.compiler.version>
         <plugin.exec.version>3.1.0</plugin.exec.version>
     </properties>

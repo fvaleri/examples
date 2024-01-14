@@ -14,11 +14,9 @@
         <java.source.version>17</java.source.version>
         <java.target.version>17</java.target.version>
         <main.class>it.fvaleri.example.Main</main.class>
-
         <h2.version>2.1.214</h2.version>
         <junit.version>5.10.0</junit.version>
         <mockito.version>5.6.0</mockito.version>
-
         <plugin.compiler.version>3.11.0</plugin.compiler.version>
         <plugin.surefire.version>3.2.1</plugin.surefire.version>
         <plugin.exec.version>3.1.0</plugin.exec.version>

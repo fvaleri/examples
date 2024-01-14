@@ -15,10 +15,8 @@
         <java.source.version>1.8</java.source.version>
         <java.target.version>1.8</java.target.version>
         <deploy.skip>true</deploy.skip>
-
         <eap.version>7.4.4.GA-redhat-00011</eap.version>
         <fuse.version>7.9.0.fuse-sb2-790067-redhat-00002</fuse.version>
-
         <plugin.compiler.version>3.10.1</plugin.compiler.version>
         <plugin.source.version>3.2.0</plugin.source.version>
         <plugin.war.version>3.0.0</plugin.war.version>

@@ -13,12 +13,10 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.source.version>1.8</java.source.version>
         <java.target.version>1.8</java.target.version>
-
         <fuse.version>7.7.0.fuse-sb2-770010-redhat-00001</fuse.version>
         <jaxb.version>2.3.1</jaxb.version>
         <qpid.jms.version>0.42.0.redhat-00002</qpid.jms.version>
         <messaginghub.version>1.0.4.redhat-00004</messaginghub.version>
-
         <plugin.compiler.version>3.10.1</plugin.compiler.version>
         <plugin.openshift.version>1.0.2</plugin.openshift.version>
     </properties>
