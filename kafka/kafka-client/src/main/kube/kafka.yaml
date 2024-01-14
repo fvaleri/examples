@@ -76,4 +76,10 @@ spec:
           # disable the use of finalizers to control topic deletion
           - name: STRIMZI_USE_FINALIZERS
             value: "false"
-  cruiseControl: {}
+  cruiseControl:
+    brokerCapacity:
+      # setting network capacity to avoid the default at 10 MB/s
+      inboundNetwork: 500MB/s
+      outboundNetwork: 500MB/s
+    config:
+      max.active.user.tasks: 5
