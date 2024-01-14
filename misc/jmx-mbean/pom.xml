@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>it.fvaleri.example</groupId>
-    <artifactId>jmx-agent</artifactId>
+    <artifactId>jmx-mbean</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
