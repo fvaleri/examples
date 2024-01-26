@@ -13,20 +13,20 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
-import static it.fvaleri.example.Kubernetes.clusterCleanup;
-import static it.fvaleri.example.Kubernetes.createCluster;
-import static it.fvaleri.example.Kubernetes.createKafkaTopicNoWait;
-import static it.fvaleri.example.Kubernetes.createNamespace;
-import static it.fvaleri.example.Kubernetes.deleteKafkaTopic;
-import static it.fvaleri.example.Kubernetes.deployClusterOperator;
-import static it.fvaleri.example.Kubernetes.restartEntityOperator;
-import static it.fvaleri.example.Kubernetes.updateKafkaTopicNoWait;
+import static it.fvaleri.example.Utils.clusterCleanup;
+import static it.fvaleri.example.Utils.createCluster;
+import static it.fvaleri.example.Utils.createKafkaTopicNoWait;
+import static it.fvaleri.example.Utils.createNamespace;
+import static it.fvaleri.example.Utils.deleteKafkaTopic;
+import static it.fvaleri.example.Utils.deployClusterOperator;
+import static it.fvaleri.example.Utils.restartEntityOperator;
 import static it.fvaleri.example.Utils.sleep;
 import static it.fvaleri.example.Utils.stopExecutor;
+import static it.fvaleri.example.Utils.updateKafkaTopicNoWait;
 import static java.time.Duration.ofSeconds;
 
-public class TopicOperator {
-    private static final Logger LOG = LoggerFactory.getLogger(TopicOperator.class);
+public class TopicOperatorLoadTest {
+    private static final Logger LOG = LoggerFactory.getLogger(TopicOperatorLoadTest.class);
     private static final boolean UTO_ENABLED = true;
 
     public static void main(String[] args) {
