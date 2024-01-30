@@ -42,7 +42,7 @@ spec:
       containers:
         - name: kafka-txn
           image: ghcr.io/fvaleri/kafka-txn:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: BOOTSTRAP_SERVERS
               value: "my-cluster-kafka-bootstrap:9092"
