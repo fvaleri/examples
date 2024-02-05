@@ -13,12 +13,10 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.source.version>11</java.source.version>
         <java.target.version>11</java.target.version>
-
         <quarkus.version>2.10.0.Final</quarkus.version>
         <camel.quarkus.version>2.10.0</camel.quarkus.version>
         <quarkus.artemis.version>1.2.0</quarkus.artemis.version>
         <quarkus.pooled.jms.version>1.0.1</quarkus.pooled.jms.version>
-
         <plugin.compiler.version>3.10.1</plugin.compiler.version>
     </properties>
 

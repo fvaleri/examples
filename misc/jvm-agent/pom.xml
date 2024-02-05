@@ -19,9 +19,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.source.version>17</java.source.version>
         <java.target.version>17</java.target.version>
-
         <javaassist.version>3.30.2-GA</javaassist.version>
-
         <plugin.compiler.version>3.12.1</plugin.compiler.version>
         <plugin.assembly.version>3.6.0</plugin.assembly.version>
     </properties>

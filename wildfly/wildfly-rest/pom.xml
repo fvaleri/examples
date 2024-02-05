@@ -15,10 +15,8 @@
         <java.source.version>1.8</java.source.version>
         <java.target.version>1.8</java.target.version>
         <deploy.skip>true</deploy.skip>
-
         <fuse.version>7.3.1.fuse-731003-redhat-00003</fuse.version>
         <hibernate.version>1.0.2.Final-redhat-1</hibernate.version>
-
         <plugin.compiler.version>3.10.1</plugin.compiler.version>
         <plugin.wildfly.version>1.2.2.Final</plugin.wildfly.version>
     </properties>

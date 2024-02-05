@@ -15,9 +15,7 @@
         <java.target.version>11</java.target.version>
         <!-- the node identifier must be unique across instances -->
         <node.identifier>${project.artifactId}-0</node.identifier>
-
         <fuse.version>7.10.0.fuse-sb2-7_10_1-00008-redhat-00001</fuse.version>
-
         <plugin.compiler.version>3.10.1</plugin.compiler.version>
     </properties>
 

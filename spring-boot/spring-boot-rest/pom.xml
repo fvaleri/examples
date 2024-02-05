@@ -19,13 +19,11 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.source.version>1.8</java.source.version>
         <java.target.version>1.8</java.target.version>
-
         <fuse.version>7.8.0.fuse-sb2-780038-redhat-00001</fuse.version>
         <fuse-image.version>1.8</fuse-image.version>
         <swagger.version>3.13.0</swagger.version>
         <webjars.version>0.33</webjars.version>
         <activation.version>1.1.1</activation.version>
-
         <plugin.compiler.version>3.10.1</plugin.compiler.version>
         <plugin.surefire.version>2.22.2</plugin.surefire.version>
         <plugin.openshift.version>1.0.2</plugin.openshift.version>
