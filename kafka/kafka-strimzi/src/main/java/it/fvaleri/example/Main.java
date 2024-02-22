@@ -25,9 +25,9 @@ import static it.fvaleri.example.Utils.stopExecutor;
 import static it.fvaleri.example.Utils.updateKafkaTopicNoWait;
 import static java.time.Duration.ofSeconds;
 
-public class TopicOperatorLoadTest {
-    private static final Logger LOG = LoggerFactory.getLogger(TopicOperatorLoadTest.class);
-    private static final boolean UTO_ENABLED = true;
+public class Main {
+    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
+    private static final String FEATURE_GATE_UTO = "+UnidirectionalTopicOperator";
 
     public static void main(String[] args) {
         String operatorNamespace = "operators";
@@ -36,14 +36,11 @@ public class TopicOperatorLoadTest {
         try (KubernetesClient client = new KubernetesClientBuilder().build()) {
             LOG.info("Preparing the environment");
             createNamespace(client, operatorNamespace);
-            if (UTO_ENABLED) {
-                deployClusterOperator(client, operatorNamespace, "+UnidirectionalTopicOperator");
-            } else {
-                deployClusterOperator(client, operatorNamespace);
-            }
+            deployClusterOperator(client, operatorNamespace, FEATURE_GATE_UTO);
             createNamespace(client, testNamespace);
             createCluster(client, testNamespace, clusterName);
 
+            // load testing the Unidirectional Topic Operator
             IntStream.iterate(50, n -> n + 50).limit(20).forEach(n -> {
                 try {
                     runBulkWorkload(client, testNamespace, clusterName, n);

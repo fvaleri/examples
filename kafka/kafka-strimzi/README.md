@@ -1,3 +1,3 @@
 ```sh
-mvn compile exec:java -Dexec.mainClass="it.fvaleri.example.TopicOperatorLoadTest"
+mvn compile exec:java -Dexec.mainClass="it.fvaleri.example.Main"
 ```

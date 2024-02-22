@@ -1,31 +1,14 @@
 ```sh
-###
-### Run on localhost
-###
-
-KAFKA_VERSION="3.6.1" KAFKA_HOME="target/kafka" \
-  && pkill -SIGKILL -ef "$KAFKA_HOME"; rm -rf "$KAFKA_HOME" && mkdir -p "$KAFKA_HOME"
-curl -Lk "https://archive.apache.org/dist/kafka/$KAFKA_VERSION/kafka_2.13-$KAFKA_VERSION.tgz" \
-  | tar xz -C "$KAFKA_HOME" --strip-components 1 && pushd "$KAFKA_HOME"
-sed -Ei "s#log.dirs=.*#log.dirs: data#g" config/kraft/server.properties
-bin/kafka-storage.sh format -t "$(bin/kafka-storage.sh random-uuid)" -c config/kraft/server.properties \
-  && bin/kafka-server-start.sh -daemon config/kraft/server.properties && popd
-
+# run on localhost
 mvn compile exec:java
 CLIENT_TYPE="consumer" mvn compile exec:java
 
-###
-### Run on Kubernetes
-###
-
+# run on Kubernetes
 mvn clean package
-
 docker build -t ghcr.io/fvaleri/kafka-client:latest .
 docker login ghcr.io -u fvaleri && docker push ghcr.io/fvaleri/kafka-client:latest
 docker system prune -f; rm -rf ~/.docker/config.json
-
 kubectl create -f kube/deployment.yaml
-
 kubectl logs -f $(kubectl get po -l app=my-producer -o name)
 kubectl logs -f $(kubectl get po -l app=my-consumer -o name)
 ```
