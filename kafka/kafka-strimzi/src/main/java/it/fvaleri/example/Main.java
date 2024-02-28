@@ -40,7 +40,7 @@ public class Main {
             createNamespace(client, testNamespace);
             createCluster(client, testNamespace, clusterName);
 
-            // load testing the Unidirectional Topic Operator
+            // load test for the Unidirectional Topic Operator
             IntStream.iterate(50, n -> n + 50).limit(20).forEach(n -> {
                 try {
                     runBulkWorkload(client, testNamespace, clusterName, n);
