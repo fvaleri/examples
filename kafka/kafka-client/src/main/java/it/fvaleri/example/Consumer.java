@@ -1,10 +1,5 @@
 package it.fvaleri.example;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -15,8 +10,14 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetCommitCallback;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.RecordDeserializationException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.LongDeserializer;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 import static java.time.Duration.ofMillis;
 import static java.util.Collections.singleton;
@@ -30,7 +31,7 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
     }
 
     @Override
-    public void execute() throws Exception {
+    public void execute() {
         // the consumer instance is NOT thread safe
         try (var consumer = createKafkaConsumer()) {
             kafkaConsumer = consumer;
@@ -43,9 +44,9 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
                     ConsumerRecords<Long, byte[]> records = consumer.poll(ofMillis(Configuration.POLL_TIMEOUT_MS));
                     if (!records.isEmpty()) {
                         for (ConsumerRecord<Long, byte[]> record : records) {
-                            LOG.debug("Record fetched from {}-{} with offset {}",
+                            LOG.debug("Record fetched from partition {}-{} offset {}",
                                 record.topic(), record.partition(), record.offset());
-                            sleep(Configuration.PROCESSING_DELAY_MS);
+                            sleepFor(Configuration.PROCESSING_DELAY_MS);
                             // we only add to pending offsets after processing
                             pendingOffsets.put(new TopicPartition(record.topic(), record.partition()),
                                 new OffsetAndMetadata(record.offset() + 1, null));
@@ -58,10 +59,16 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
                         pendingOffsets.clear();
                     }
                 } catch (OffsetOutOfRangeException | NoOffsetForPartitionException e) {
-                    // invalid or no offset found without auto.reset.policy
-                    LOG.info("Invalid or no offset found, using latest");
+                    LOG.info("Invalid or no offset found without auto.reset.policy, using latest");
                     consumer.seekToEnd(e.partitions());
                     consumer.commitSync();
+                } catch (RecordDeserializationException e) {
+                    // parsed records are returned first, the RDE is thrown on the next poll
+                    LOG.warn("Skipping invalid record at partition {} offset {} ", e.topicPartition(), e.offset());
+                    consumer.seek(e.topicPartition(), e.offset() + 1);
+                    if (messageCount.incrementAndGet() == Configuration.NUM_MESSAGES) {
+                        break;
+                    }
                 } catch (Exception e) {
                     LOG.error(e.getMessage());
                     if (!retriable(e)) {

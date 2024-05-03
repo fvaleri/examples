@@ -8,6 +8,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -21,6 +22,7 @@ import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.errors.RebalanceInProgressException;
 import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,10 +66,18 @@ public abstract class Client extends Thread {
     }
 
     // implement the execution loop
-    abstract void execute() throws Exception;
+    abstract void execute();
 
-    // override if custom shutdown logic is needed
+    // override when custom shutdown logic is needed
     void onShutdown() {
+    }
+    
+    void sleepFor(long millis) {
+        try {
+            TimeUnit.MILLISECONDS.sleep(millis);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // the API is evolving, so this method does not include all fatal errors
@@ -77,6 +87,7 @@ public abstract class Client extends Thread {
             return false;
         } else if (e instanceof IllegalArgumentException
             || e instanceof UnsupportedOperationException
+            || e instanceof UnsupportedVersionException
             || !(e instanceof RebalanceInProgressException)
             || !(e instanceof RetriableException)) {
             // non retriable exception

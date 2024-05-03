@@ -16,18 +16,20 @@ public class Producer extends Client implements Callback {
     }
 
     @Override
-    public void execute() throws Exception {
+    public void execute() {
         // the producer instance is thread safe
         try (var producer = createKafkaProducer()) {
             createTopics(Configuration.TOPIC_NAME);
             byte[] value = randomBytes(Configuration.MESSAGE_SIZE_BYTES);
             while (!closed.get() && messageCount.get() < Configuration.NUM_MESSAGES) {
-                sleep(Configuration.PROCESSING_DELAY_MS);
+                sleepFor(Configuration.PROCESSING_DELAY_MS);
                 // async send but still blocks when buffer.memory is full or metadata are not available
                 // InitProducerId(leader), Produce(leader)
                 producer.send(new ProducerRecord<>(Configuration.TOPIC_NAME, messageCount.get(), value), this);
                 messageCount.incrementAndGet();
             }
+            LOG.debug("Flushing records");
+            producer.flush();
         }
     }
 
@@ -50,7 +52,7 @@ public class Producer extends Client implements Callback {
                 shutdown(e);
             }
         } else {
-            LOG.debug("Record sent to {}-{} with offset {}",
+            LOG.debug("Record sent to partition {}-{} offset {}",
                 metadata.topic(), metadata.partition(), metadata.offset());
         }
     }

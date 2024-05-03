@@ -27,7 +27,7 @@ public class Configuration {
     public static final String CLIENT_ID = getOrDefault("client.id", "client-" + UUID.randomUUID());
     public static final String SECURITY_PROTOCOL = getOrDefault("security.protocol", "PLAINTEXT");
     public static final String TOPIC_NAME = getOrDefault("topic.name", null);
-    public static final String GROUP_ID = getOrDefault("group.id", "group-" + UUID.randomUUID());
+    public static final String GROUP_ID = getOrDefault("group.id", "my-group");
 
     public static final String ADMIN_CONFIG = getOrDefault("admin.config", null);
     public static final String PRODUCER_CONFIG = getOrDefault("producer.config", null);
