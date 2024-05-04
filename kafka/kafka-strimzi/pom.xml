@@ -13,11 +13,12 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.source.version>17</java.source.version>
         <java.target.version>17</java.target.version>
-        <kubernetes.client.version>6.9.0</kubernetes.client.version>
-        <strimzi.api.version>0.38.0</strimzi.api.version>
-        <slf4j.version>2.0.9</slf4j.version>
-        <plugin.compiler.version>3.11.0</plugin.compiler.version>
-        <plugin.exec.version>3.1.0</plugin.exec.version>
+        <strimzi.version>0.40.0</strimzi.version>
+        <!-- use the same kube client used in the Strimzi release -->
+        <kubernetes.client.version>6.10.0</kubernetes.client.version>
+        <slf4j.version>2.0.13</slf4j.version>
+        <plugin.compiler.version>3.13.0</plugin.compiler.version>
+        <plugin.exec.version>3.2.0</plugin.exec.version>
     </properties>
 
     <dependencies>
@@ -31,7 +32,7 @@
         <dependency>
             <groupId>io.strimzi</groupId>
             <artifactId>api</artifactId>
-            <version>${strimzi.api.version}</version>
+            <version>${strimzi.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

@@ -15,14 +15,14 @@ import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBindingBuilder;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.strimzi.api.kafka.Crds;
-import io.strimzi.api.kafka.model.ContainerEnvVarBuilder;
-import io.strimzi.api.kafka.model.Kafka;
-import io.strimzi.api.kafka.model.KafkaBuilder;
-import io.strimzi.api.kafka.model.KafkaTopic;
-import io.strimzi.api.kafka.model.KafkaTopicBuilder;
-import io.strimzi.api.kafka.model.listener.arraylistener.GenericKafkaListenerBuilder;
-import io.strimzi.api.kafka.model.listener.arraylistener.KafkaListenerType;
-import io.strimzi.api.kafka.model.template.EntityOperatorTemplateBuilder;
+import io.strimzi.api.kafka.model.common.ContainerEnvVarBuilder;
+import io.strimzi.api.kafka.model.kafka.Kafka;
+import io.strimzi.api.kafka.model.kafka.KafkaBuilder;
+import io.strimzi.api.kafka.model.kafka.entityoperator.EntityOperatorTemplateBuilder;
+import io.strimzi.api.kafka.model.kafka.listener.GenericKafkaListenerBuilder;
+import io.strimzi.api.kafka.model.kafka.listener.KafkaListenerType;
+import io.strimzi.api.kafka.model.topic.KafkaTopic;
+import io.strimzi.api.kafka.model.topic.KafkaTopicBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,16 +42,17 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
-    private static final String STRIMZI_VERSION = "0.38.0";
-    private static final int RECONCILIATION_INTERVAL_SEC = 10;
-    private static final int MAX_QUEUE_SIZE = Integer.MAX_VALUE;
-    private static final int MAX_BATCH_SIZE = 100;
-    private static final long MAX_BATCH_LINGER_MS = 10;
+    private static final String STRIMZI_VERSION = "0.40.0";
+    
+    private static final int TO_RECONCILIATION_INTERVAL_SEC = 10;
+    private static final int TO_MAX_QUEUE_SIZE = Integer.MAX_VALUE;
+    private static final int TO_MAX_BATCH_SIZE = 100;
+    private static final long TO_MAX_BATCH_LINGER_MS = 10;
 
     private Utils() {
     }
 
-    public static void sleep(long millis) {
+    public static void sleepFor(long millis) {
         try {
             MILLISECONDS.sleep(millis);
         } catch (InterruptedException e) {
@@ -202,7 +203,7 @@ public class Utils {
             .endKafka()
             .withNewEntityOperator()
             .withNewTopicOperator()
-            .withReconciliationIntervalSeconds(RECONCILIATION_INTERVAL_SEC)
+            .withReconciliationIntervalSeconds(TO_RECONCILIATION_INTERVAL_SEC)
             .endTopicOperator()
             .withNewUserOperator()
             .endUserOperator()
@@ -215,15 +216,15 @@ public class Utils {
                         .build(),
                     new ContainerEnvVarBuilder()
                         .withName("STRIMZI_MAX_QUEUE_SIZE")
-                        .withValue(valueOf(MAX_QUEUE_SIZE))
+                        .withValue(valueOf(TO_MAX_QUEUE_SIZE))
                         .build(),
                     new ContainerEnvVarBuilder()
                         .withName("STRIMZI_MAX_BATCH_SIZE")
-                        .withValue(valueOf(MAX_BATCH_SIZE))
+                        .withValue(valueOf(TO_MAX_BATCH_SIZE))
                         .build(),
                     new ContainerEnvVarBuilder()
                         .withName("STRIMZI_MAX_BATCH_LINGER_MS")
-                        .withValue(valueOf(MAX_BATCH_LINGER_MS))
+                        .withValue(valueOf(TO_MAX_BATCH_LINGER_MS))
                         .build())
                 .endTopicOperatorContainer()
                 .build())
@@ -244,7 +245,7 @@ public class Utils {
         waitForEntityOperatorReady(client, namespace, clusterName);
     }
 
-    public static void createKafkaTopicNoWait(KubernetesClient client, String namespace, String clusterName, String name) {
+    public static void createKafkaTopic(KubernetesClient client, String namespace, String clusterName, String name) {
         KafkaTopic kt = new KafkaTopicBuilder()
             .withNewMetadata()
             .withName(name)
@@ -261,7 +262,7 @@ public class Utils {
         waitForKafkaTopicReady(client, namespace, name);
     }
 
-    public static void updateKafkaTopicNoWait(KubernetesClient client, String namespace, String name) {
+    public static void updateKafkaTopic(KubernetesClient client, String namespace, String name) {
         LOG.debug("Updating KafkaTopic {} in Namespace {}", name, namespace);
         Crds.topicOperation(client).inNamespace(namespace).withName(name)
             .edit(k -> new KafkaTopicBuilder(k)
