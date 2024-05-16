@@ -1,4 +1,4 @@
-package it.fvaleri.example;
+package it.fvaleri.example.storage;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
@@ -30,7 +30,7 @@ public class JdbcQueryableStorage implements QueryableStorage {
     private final Map<String, AtomicLong> batchCounters;
     private final List<ResultSet> resultSets;
 
-    public JdbcQueryableStorage(Connection conn, Properties queries) {
+    JdbcQueryableStorage(Connection conn, Properties queries) {
         try {
             if (conn == null || conn.isClosed()) {
                 throw new IllegalArgumentException("Invalid connection");
@@ -121,7 +121,8 @@ public class JdbcQueryableStorage implements QueryableStorage {
         }
     }
 
-    public void close() {
+    @Override
+    public void close() throws Exception {
         try {
             if (resultSets != null && !resultSets.isEmpty()) {
                 for (ResultSet rs : resultSets) {

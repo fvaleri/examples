@@ -1,11 +1,22 @@
-package it.fvaleri.example;
+package it.fvaleri.example.storage;
 
+import java.sql.Connection;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Storage that supports read and write queries.
  */
-public interface QueryableStorage {
+public interface QueryableStorage extends AutoCloseable {
+    /**
+     * Create default queryable storage instance.
+     * @param conn SQL connection.
+     * @param queries Query templates
+     */
+    static QueryableStorage create(Connection conn, Properties queries) {
+        return new JdbcQueryableStorage(conn, queries);
+    }
+    
     /**
      * Executes a read query without parameters.
      *
@@ -21,7 +32,7 @@ public interface QueryableStorage {
      *
      * @param queryName Query name.
      * @param columnTypes Result column types.
-     * @param queryParams Query parameters
+     * @param queryParams Query parameters.
      * @return List of rows.
      */
     List<Row> read(String queryName, List<Class<?>> columnTypes, List<Object> queryParams);
@@ -56,11 +67,6 @@ public interface QueryableStorage {
      * @return Number of written rows.
      */
     int write(String queryName, List<Object> queryParams, int batchSize);
-
-    /**
-     * Closes all open resources.
-     */
-    void close();
 
     /**
      * A row in a query result (list of rows).

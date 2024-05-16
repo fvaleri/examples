@@ -1,6 +1,7 @@
 package it.fvaleri.example;
 
-import it.fvaleri.example.QueryableStorage.Row;
+import it.fvaleri.example.storage.QueryableStorage;
+import it.fvaleri.example.storage.QueryableStorage.Row;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

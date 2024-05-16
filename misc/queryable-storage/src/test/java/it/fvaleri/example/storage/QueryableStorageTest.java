@@ -1,6 +1,6 @@
-package it.fvaleri.example;
+package it.fvaleri.example.storage;
 
-import it.fvaleri.example.QueryableStorage.Row;
+import it.fvaleri.example.storage.QueryableStorage.Row;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -19,9 +19,9 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class JdbcQueryableStorageTest {
+public class QueryableStorageTest {
     @Test
-    void shouldReadUsingExistingQueryWithParams() throws SQLException {
+    void shouldReadUsingExistingQueryWithParams() throws Exception {
         List<String> data = List.of("v1", "v2", "v3");
 
         Connection conn = mock(Connection.class);
@@ -34,15 +34,13 @@ public class JdbcQueryableStorageTest {
 
         Properties queries = new Properties();
         queries.put("read", "valid SQL query");
-        QueryableStorage storage = new JdbcQueryableStorage(conn, queries);
-
-        assertEquals("v2", storage.read("read", List.of(String.class), List.of("k2")).get(0).columns().get(0));
-
-        storage.close();
+        try (QueryableStorage storage = QueryableStorage.create(conn, queries)) {
+            assertEquals("v2", storage.read("read", List.of(String.class), List.of("k2")).get(0).columns().get(0));
+        }
     }
 
     @Test
-    void shouldReadUsingExistingQueryWithoutParams() throws SQLException {
+    void shouldReadUsingExistingQueryWithoutParams() throws Exception {
         List<String> data = List.of("v1", "v2", "v3");
 
         Connection conn = mock(Connection.class);
@@ -55,17 +53,15 @@ public class JdbcQueryableStorageTest {
 
         Properties queries = new Properties();
         queries.put("read", "valid SQL query");
-        QueryableStorage storage = new JdbcQueryableStorage(conn, queries);
-
-        List<Row> rows = storage.read("read", List.of(String.class));
-        List<String> result = rows.stream().map(row -> (String) row.columns().get(0)).collect(Collectors.toList());
-        assertEquals(data,  result);
-
-        storage.close();
+        try (QueryableStorage storage = QueryableStorage.create(conn, queries)) {
+            List<Row> rows = storage.read("read", List.of(String.class));
+            List<String> result = rows.stream().map(row -> (String) row.columns().get(0)).collect(Collectors.toList());
+            assertEquals(data, result);
+        }
     }
 
     @Test
-    void shouldWriteUsingExistingQuery() throws SQLException {
+    void shouldWriteUsingExistingQuery() throws Exception {
         Connection conn = mock(Connection.class);
         PreparedStatement prepStmt = mock(PreparedStatement.class);
         when(conn.prepareStatement(any())).thenReturn(prepStmt);
@@ -73,15 +69,14 @@ public class JdbcQueryableStorageTest {
 
         Properties queries = new Properties();
         queries.put("write", "valid SQL query");
-        QueryableStorage storage = new JdbcQueryableStorage(conn, queries);
 
-        assertEquals(1, storage.write("write", List.of("foo", "bar")));
-
-        storage.close();
+        try (QueryableStorage storage = QueryableStorage.create(conn, queries)) {
+            assertEquals(1, storage.write("write", List.of("foo", "bar")));
+        }
     }
 
     @Test
-    void shouldReturnEmptyListWhenNoResult() throws SQLException {
+    void shouldReturnEmptyListWhenNoResult() throws Exception {
         Connection conn = mock(Connection.class);
         PreparedStatement prepStmt = mock(PreparedStatement.class);
         ResultSet resultSet = mock(ResultSet.class);
@@ -91,12 +86,11 @@ public class JdbcQueryableStorageTest {
 
         Properties queries = new Properties();
         queries.put("read", "valid SQL query");
-        QueryableStorage storage = new JdbcQueryableStorage(conn, queries);
 
-        List<Row> rows = storage.read("read", List.of(String.class));
-        assertTrue(rows.isEmpty());
-
-        storage.close();
+        try (QueryableStorage storage = QueryableStorage.create(conn, queries)) {
+            List<Row> rows = storage.read("read", List.of(String.class));
+            assertTrue(rows.isEmpty());
+        }
     }
 
     @Test
@@ -108,11 +102,11 @@ public class JdbcQueryableStorageTest {
         Properties queries = new Properties();
         queries.put("read", "valid SQL query");
 
-        Exception e1 = assertThrows(IllegalArgumentException.class, () -> new JdbcQueryableStorage(null, queries));
+        Exception e1 = assertThrows(IllegalArgumentException.class, () -> QueryableStorage.create(null, queries));
         assertEquals("Invalid connection", e1.getMessage());
 
         when(conn.isClosed()).thenReturn(true);
-        Exception e2 = assertThrows(IllegalArgumentException.class, () -> new JdbcQueryableStorage(conn, queries));
+        Exception e2 = assertThrows(IllegalArgumentException.class, () -> QueryableStorage.create(conn, queries));
         assertEquals("Invalid connection", e2.getMessage());
     }
 
@@ -122,15 +116,15 @@ public class JdbcQueryableStorageTest {
         PreparedStatement prepStmt = mock(PreparedStatement.class);
         when(conn.prepareStatement(any())).thenReturn(prepStmt);
 
-        Exception e1 = assertThrows(IllegalArgumentException.class, () -> new JdbcQueryableStorage(conn, null));
+        Exception e1 = assertThrows(IllegalArgumentException.class, () -> QueryableStorage.create(conn, null));
         assertEquals("Invalid queries", e1.getMessage());
 
-        Exception e2 = assertThrows(IllegalArgumentException.class, () -> new JdbcQueryableStorage(conn, new Properties()));
+        Exception e2 = assertThrows(IllegalArgumentException.class, () -> QueryableStorage.create(conn, new Properties()));
         assertEquals("Invalid queries", e2.getMessage());
     }
 
     @Test
-    void shouldFailWhenQueryNameIsNullOrEmpty() throws SQLException {
+    void shouldFailWhenQueryNameIsNullOrEmpty() throws Exception {
         Connection conn = mock(Connection.class);
         PreparedStatement prepStmt = mock(PreparedStatement.class);
         when(conn.prepareStatement(any())).thenReturn(prepStmt);
@@ -138,44 +132,42 @@ public class JdbcQueryableStorageTest {
         Properties queries = new Properties();
         queries.put("read", "valid SQL query");
         queries.put("write", "valid SQL query");
-        QueryableStorage storage = new JdbcQueryableStorage(conn, queries);
 
-        Exception e1 = assertThrows(IllegalArgumentException.class, () -> storage.read(null, List.of(String.class)));
-        assertEquals("Invalid query name", e1.getMessage());
+        try (QueryableStorage storage = QueryableStorage.create(conn, queries)) {
+            Exception e1 = assertThrows(IllegalArgumentException.class, () -> storage.read(null, List.of(String.class)));
+            assertEquals("Invalid query name", e1.getMessage());
 
-        Exception e2 = assertThrows(IllegalArgumentException.class, () -> storage.read("", List.of(String.class)));
-        assertEquals("Invalid query name", e2.getMessage());
+            Exception e2 = assertThrows(IllegalArgumentException.class, () -> storage.read("", List.of(String.class)));
+            assertEquals("Invalid query name", e2.getMessage());
 
-        Exception e3 = assertThrows(IllegalArgumentException.class, () -> storage.write(null, List.of("foo", "bar")));
-        assertEquals("Invalid query name", e3.getMessage());
+            Exception e3 = assertThrows(IllegalArgumentException.class, () -> storage.write(null, List.of("foo", "bar")));
+            assertEquals("Invalid query name", e3.getMessage());
 
-        Exception e4 = assertThrows(IllegalArgumentException.class, () -> storage.write("", List.of("foo", "bar")));
-        assertEquals("Invalid query name", e4.getMessage());
-
-        storage.close();
+            Exception e4 = assertThrows(IllegalArgumentException.class, () -> storage.write("", List.of("foo", "bar")));
+            assertEquals("Invalid query name", e4.getMessage());
+        }
     }
 
     @Test
-    void shouldFailWhenReadColumnTypesAreNullOrEmpty() throws SQLException {
+    void shouldFailWhenReadColumnTypesAreNullOrEmpty() throws Exception {
         Connection conn = mock(Connection.class);
         PreparedStatement prepStmt = mock(PreparedStatement.class);
         when(conn.prepareStatement(any())).thenReturn(prepStmt);
 
         Properties queries = new Properties();
         queries.put("read", "valid SQL query");
-        QueryableStorage storage = new JdbcQueryableStorage(conn, queries);
 
-        Exception e1 = assertThrows(IllegalArgumentException.class, () -> storage.read("read", null));
-        assertEquals("Invalid column types", e1.getMessage());
+        try (QueryableStorage storage = QueryableStorage.create(conn, queries)) {
+            Exception e1 = assertThrows(IllegalArgumentException.class, () -> storage.read("read", null));
+            assertEquals("Invalid column types", e1.getMessage());
 
-        Exception e2 = assertThrows(IllegalArgumentException.class, () -> storage.read("read", List.of()));
-        assertEquals("Invalid column types", e2.getMessage());
-
-        storage.close();
+            Exception e2 = assertThrows(IllegalArgumentException.class, () -> storage.read("read", List.of()));
+            assertEquals("Invalid column types", e2.getMessage());
+        }
     }
 
     @Test
-    void shouldFailWhenQueryNotFound() throws SQLException {
+    void shouldFailWhenQueryNotFound() throws Exception {
         Connection conn = mock(Connection.class);
         PreparedStatement prepStmt = mock(PreparedStatement.class);
         when(conn.prepareStatement(any())).thenReturn(prepStmt);
@@ -183,19 +175,18 @@ public class JdbcQueryableStorageTest {
         Properties queries = new Properties();
         queries.put("read", "valid SQL query");
         queries.put("write", "valid SQL query");
-        QueryableStorage storage = new JdbcQueryableStorage(conn, queries);
 
-        Exception e1 = assertThrows(IllegalArgumentException.class, () -> storage.read("foo", List.of(String.class)));
-        assertEquals("Query foo not found", e1.getMessage());
+        try (QueryableStorage storage = QueryableStorage.create(conn, queries)) {
+            Exception e1 = assertThrows(IllegalArgumentException.class, () -> storage.read("foo", List.of(String.class)));
+            assertEquals("Query foo not found", e1.getMessage());
 
-        Exception e2 = assertThrows(IllegalArgumentException.class, () -> storage.write("foo", List.of("foo", "bar")));
-        assertEquals("Query foo not found", e2.getMessage());
-
-        storage.close();
+            Exception e2 = assertThrows(IllegalArgumentException.class, () -> storage.write("foo", List.of("foo", "bar")));
+            assertEquals("Query foo not found", e2.getMessage());
+        }
     }
 
     @Test
-    void shouldBatchWhenBatchSizeIsGreaterThanOne() throws SQLException {
+    void shouldBatchWhenBatchSizeIsGreaterThanOne() throws Exception {
         Connection conn = mock(Connection.class);
         PreparedStatement prepStmt = mock(PreparedStatement.class);
         when(conn.prepareStatement(any())).thenReturn(prepStmt);
@@ -204,11 +195,9 @@ public class JdbcQueryableStorageTest {
         Properties queries = new Properties();
         queries.put("read", "valid SQL query");
         queries.put("write", "valid SQL query");
-        QueryableStorage storage = new JdbcQueryableStorage(conn, queries);
-
-        assertEquals(0, storage.write("write", List.of("foo", "bar"), 2));
-        assertEquals(2, storage.write("write", List.of("foo", "bar"), 2));
-
-        storage.close();
+        try (QueryableStorage storage = QueryableStorage.create(conn, queries)) {
+            assertEquals(0, storage.write("write", List.of("foo", "bar"), 2));
+            assertEquals(2, storage.write("write", List.of("foo", "bar"), 2));
+        }
     }
 }

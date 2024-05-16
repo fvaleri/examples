@@ -1,5 +1,5 @@
 ```sh
 mvn compile exec:java
 mvn test
-mvn test -Dtest=JdbcQueryableStorageIT
+mvn test -Dtest=QueryableStorageIT
 ```
