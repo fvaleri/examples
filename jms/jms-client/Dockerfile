@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 ENV APP_HOME="/opt/example"
 ENV JAVA_VERSION="17"
@@ -9,8 +9,8 @@ ENV TINI_VERSION="v0.19.0"
 
 USER root
 
-RUN microdnf update \
-    && microdnf --setopt=install_weak_deps=0 --setopt=tsflags=nodocs install java-$JAVA_VERSION-openjdk-headless shadow-utils \
+RUN microdnf update -y \
+    && microdnf --setopt=install_weak_deps=0 --setopt=tsflags=nodocs install -y java-$JAVA_VERSION-openjdk-headless shadow-utils \
     && microdnf clean all
 
 # add Tini
