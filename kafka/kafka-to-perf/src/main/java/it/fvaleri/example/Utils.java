@@ -42,12 +42,12 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
-    private static final String STRIMZI_VERSION = "0.40.0";
     
+    private static final String STRIMZI_VERSION = "0.41.0";
     private static final int TO_RECONCILIATION_INTERVAL_SEC = 10;
     private static final int TO_MAX_QUEUE_SIZE = Integer.MAX_VALUE;
     private static final int TO_MAX_BATCH_SIZE = 100;
-    private static final long TO_MAX_BATCH_LINGER_MS = 10;
+    private static final long TO_MAX_BATCH_LINGER_MS = 100;
 
     private Utils() {
     }
@@ -81,8 +81,7 @@ public class Utils {
     }
 
     public static void createNamespace(KubernetesClient client, String name) {
-        Namespace namespace = client.namespaces().withName(name).get();
-        if (namespace == null) {
+        if (client.namespaces().withName(name).get() == null) {
             LOG.debug("Creating Namespace {}", name);
             client.namespaces().resource(new NamespaceBuilder()
                 .withNewMetadata()
@@ -165,7 +164,7 @@ public class Utils {
             }
         }
     }
-
+    
     public static void createCluster(KubernetesClient client, String namespace, String name) {
         int defaultPartitions = 3;
         int defaultReplicas = 3;
@@ -210,10 +209,10 @@ public class Utils {
             .withTemplate(new EntityOperatorTemplateBuilder()
                 .withNewTopicOperatorContainer()
                 .withEnv(
-                    new ContainerEnvVarBuilder()
+                    /*new ContainerEnvVarBuilder()
                         .withName("STRIMZI_USE_FINALIZERS")
                         .withValue("false")
-                        .build(),
+                        .build(),*/
                     new ContainerEnvVarBuilder()
                         .withName("STRIMZI_MAX_QUEUE_SIZE")
                         .withValue(valueOf(TO_MAX_QUEUE_SIZE))
@@ -280,8 +279,8 @@ public class Utils {
         waitForKafkaTopicDeleted(client, namespace, name);
     }
 
-    public static void clusterCleanup(KubernetesClient client, String... namespaces) throws Exception {
-        LOG.info("Cleaning up the cluster");
+    public static void cleanKubernetes(KubernetesClient client, String... namespaces) throws Exception {
+        LOG.debug("Cleaning up Kubernetes");
         for (String ns : namespaces) {
             deleteNamespace(client, ns);
         }
