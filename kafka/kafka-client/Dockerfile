@@ -11,7 +11,7 @@ USER root
 
 RUN microdnf update -y \
     && microdnf --setopt=install_weak_deps=0 --setopt=tsflags=nodocs install -y java-$JAVA_VERSION-openjdk-headless shadow-utils \
-    && microdnf clean all
+    && microdnf clean all -y
 
 # add Tini
 RUN curl -skL https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini-amd64 -o /usr/bin/tini \
