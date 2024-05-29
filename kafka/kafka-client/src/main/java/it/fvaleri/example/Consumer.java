@@ -66,6 +66,7 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
                     // parsed records are returned first, the RDE is thrown on the next poll
                     LOG.warn("Skipping invalid record at partition {} offset {} ", e.topicPartition(), e.offset());
                     consumer.seek(e.topicPartition(), e.offset() + 1);
+                    // in addition to skip the bad record you may want to send it to a DLQ (see KIP-1036)
                     if (messageCount.incrementAndGet() == Configuration.NUM_MESSAGES) {
                         break;
                     }
