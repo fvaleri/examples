@@ -12,10 +12,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
-import static it.fvaleri.example.Utils.cleanKubernetes;
 import static it.fvaleri.example.Utils.createCluster;
 import static it.fvaleri.example.Utils.createKafkaTopic;
 import static it.fvaleri.example.Utils.createNamespace;
+import static it.fvaleri.example.Utils.deleteAllResources;
 import static it.fvaleri.example.Utils.deleteKafkaTopic;
 import static it.fvaleri.example.Utils.deployClusterOperator;
 import static it.fvaleri.example.Utils.sleepFor;
@@ -25,64 +25,63 @@ import static java.time.Duration.ofSeconds;
 
 public class Main {
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
-
-    private static final String OPERATOR_NAMESPACE = "strimzi";
-    private static final String TEST_NAMESPACE = "test";
-    private static final String CLUSTER_NAME = "my-cluster";
-
+    
     public static void main(String[] args) {
-        new Main().run();
-    }
-
-    public void run() {
         try (KubernetesClient client = new KubernetesClientBuilder().build()) {
-            LOG.info("Preparing the environment");
-            cleanKubernetes(client, OPERATOR_NAMESPACE, TEST_NAMESPACE);
-            createNamespace(client, OPERATOR_NAMESPACE);
-            deployClusterOperator(client, OPERATOR_NAMESPACE);
-            createNamespace(client, TEST_NAMESPACE);
-            createCluster(client, TEST_NAMESPACE, CLUSTER_NAME);
-
-            LOG.info("Running Topic Operator perf tests");
-            runTests(client, 50, 20); // 50, 100, 150, ..., 1000
-
-            LOG.info("Cleaning up the environment");
-            cleanKubernetes(client, OPERATOR_NAMESPACE, TEST_NAMESPACE);
+            LOG.info("Starting up");
+            createNamespace(client, "strimzi");
+            deployClusterOperator(client, "strimzi");
+            createNamespace(client, "test");
+            createCluster(client, "test", "my-cluster");
+            runScalabilityTests(client, 50, 20);
+            LOG.info("Shutting down");
+            deleteAllResources(client, "strimzi", "test");
         } catch (Throwable e) {
             e.printStackTrace();
         }
     }
-    
-    private void runTests(KubernetesClient client, int seed, long limit) {
-        // run warmup test
-        LOG.info("Warming up");
+
+    /**
+     * Scalability test with increasing number of events (batch).
+     *
+     * The batch size is computed by increasing by "seed" value for "limit" iterations. 
+     * Example: seed=50, limit=20 ==> 50, 100, 150, ..., 1000.
+     * 
+     * The output is the end-to-end reconciliation time in seconds, which can be used 
+     * to create a time series graph and compare the performance between changes.
+     * 
+     * @param client Kubernetes client.
+     * @param seed Starting and increment size.
+     * @param limit Total number of batches.
+     */
+    private static void runScalabilityTests(KubernetesClient client, int seed, long limit) {
+        int numProcs = Runtime.getRuntime().availableProcessors();
+        ExecutorService executor = Executors.newFixedThreadPool(numProcs);
+        
+        LOG.info("Running warm-up phase");
         for (int i = 0; i < 100; i++) {
             String topicName = "topic-" + i;
-            runTask(client, topicName, new AtomicInteger(0));
+            runScalabilityTask(client, topicName, new AtomicInteger(0));
         }
-        
-        // generates and runs tests with increasing topic event batch size
-        // for each batch , it prints out the end-to-end reconciliation time
-        IntStream.iterate(seed, n -> n + seed).limit(limit).forEach(numEvents -> {
+
+        LOG.info("Running steady-state phase");
+        IntStream.iterate(seed, n -> n + seed).limit(limit).forEach(batchSize -> {
             try {
                 int eventsPerTask = 3;
-                int numTasks = numEvents / eventsPerTask;
-                int spareEvents = numEvents - numTasks * 3;
-
-                ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+                int numTasks = batchSize / eventsPerTask;
+                int spareEvents = batchSize - numTasks * 3;
+                
                 CompletableFuture<Void>[] futures = new CompletableFuture[numTasks];
                 AtomicInteger counter = new AtomicInteger(0);
-
-                LOG.info("Generating {} topic events", numEvents);
                 long t = System.nanoTime();
-                
-                // run all tasks in parallel
+
+                LOG.info("Running {} tasks in parallel with {} executors", numTasks, numProcs);
                 for (int i = 0; i < numTasks; i++) {
                     String topicName = "topic-" + i;
-                    futures[i] = CompletableFuture.runAsync(() -> runTask(client, topicName, counter), executor);
+                    futures[i] = CompletableFuture.runAsync(() -> runScalabilityTask(client, topicName, counter), executor);
                 }
-                
-                // consume spare events
+
+                LOG.info("Consuming {} spare events", spareEvents);
                 for (int j = 0; j < spareEvents; j++) {
                     futures[j] = CompletableFuture.completedFuture(null);
                     counter.incrementAndGet();
@@ -90,30 +89,26 @@ public class Main {
                
                 CompletableFuture.allOf(futures).get();
                 String durationSec = new DecimalFormat("#.#").format((System.nanoTime() - t) / 1e9);
-                LOG.info("Processed {} topic events in {} seconds", counter.get(), durationSec);
+                LOG.info("Reconciled {} topic events in {} seconds", counter.get(), durationSec);
 
-                LOG.info("Cooling down");
-                sleepFor(ofSeconds(30).toMillis());
-                //restartEntityOperator(client, TEST_NAMESPACE, CLUSTER_NAME);
-                stopExecutor(executor, ofSeconds(5).toMillis());
+                LOG.info("Running cool-down phase");
+                sleepFor(ofSeconds(10).toMillis());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         });
+        stopExecutor(executor, ofSeconds(5).toMillis());
     }
-
-    // run single task which creates, updates and delete a topic
-    private void runTask(KubernetesClient client, String topicName, AtomicInteger counter) {
+    
+    private static void runScalabilityTask(KubernetesClient client, String topicName, AtomicInteger counter) {
         try {
-            createKafkaTopic(client, TEST_NAMESPACE, CLUSTER_NAME, topicName);
-            counter.incrementAndGet();
-
-            // TODO send in some data
-            
-            updateKafkaTopic(client, TEST_NAMESPACE, topicName);
+            createKafkaTopic(client, "test", "my-cluster", topicName);
             counter.incrementAndGet();
             
-            deleteKafkaTopic(client, TEST_NAMESPACE, topicName);
+            updateKafkaTopic(client, "test", topicName);
+            counter.incrementAndGet();
+            
+            deleteKafkaTopic(client, "test", topicName);
             counter.incrementAndGet();
         } catch (Throwable e) {
             LOG.error("Error with topic {}: {}", topicName, e.getMessage());

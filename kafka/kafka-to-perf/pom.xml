@@ -14,17 +14,28 @@
         <java.source.version>17</java.source.version>
         <java.target.version>17</java.target.version>
         <strimzi.version>0.41.0</strimzi.version>
-        <!-- use the same kube client used in the Strimzi release -->
+        <!-- Kube client version should match the version used by the Strimzi version -->
         <kubernetes.client.version>6.12.1</kubernetes.client.version>
         <slf4j.version>2.0.13</slf4j.version>
         <plugin.compiler.version>3.13.0</plugin.compiler.version>
-        <plugin.exec.version>3.2.0</plugin.exec.version>
+        <plugin.exec.version>3.3.0</plugin.exec.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-client</artifactId>
+            <version>${kubernetes.client.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.fabric8</groupId>
+                    <artifactId>kubernetes-httpclient-okhttp</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-httpclient-jdk</artifactId>
             <version>${kubernetes.client.version}</version>
         </dependency>
         <!-- sundrio is used to generate builders and fluent

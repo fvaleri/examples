@@ -3,7 +3,6 @@ package it.fvaleri.example;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.ServiceAccount;
@@ -35,15 +34,17 @@ import java.util.concurrent.ExecutorService;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
-import static java.time.Duration.ofMinutes;
+import static java.time.Duration.ofMillis;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
     
     private static final String STRIMZI_VERSION = "0.41.0";
+    private static final String OPERATOR_IMAGE = "ghcr.io/fvaleri/operator:latest";
+    private static final String KAFKA_IMAGE = "ghcr.io/fvaleri/kafka:latest-kafka-3.7.0";
+    private static final long KUBERNETES_TIMEOUT_MS = 300_000;
     private static final int TO_RECONCILIATION_INTERVAL_SEC = 10;
     private static final int TO_MAX_QUEUE_SIZE = Integer.MAX_VALUE;
     private static final int TO_MAX_BATCH_SIZE = 100;
@@ -56,6 +57,7 @@ public class Utils {
         try {
             MILLISECONDS.sleep(millis);
         } catch (InterruptedException e) {
+            // ignore
         }
     }
 
@@ -74,10 +76,13 @@ public class Utils {
         }
     }
 
-    private static List<HasMetadata> loadStrimziResources(KubernetesClient client) throws IOException {
+    private static List<HasMetadata> loadStrimziResources(KubernetesClient client) {
         String strimziUrl = format("https://github.com/strimzi/strimzi-kafka-operator/releases/download/%s/strimzi-cluster-operator-%s.yaml", STRIMZI_VERSION, STRIMZI_VERSION);
-        List<HasMetadata> resources = client.load(new BufferedInputStream(new URL(strimziUrl).openStream())).items();
-        return resources;
+        try {
+            return client.load(new BufferedInputStream(new URL(strimziUrl).openStream())).items();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void createNamespace(KubernetesClient client, String name) {
@@ -87,7 +92,7 @@ public class Utils {
                 .withNewMetadata()
                 .withName(name)
                 .endMetadata()
-                .build()).createOrReplace();
+                .build()).create();
             waitForNamespaceReady(client, name);
         }
     }
@@ -98,26 +103,25 @@ public class Utils {
         waitForNamespaceDeleted(client, name);
     }
 
-    public static void deployClusterOperator(KubernetesClient client, String namespace, String... featureGates) throws Exception {
+    public static void deployClusterOperator(KubernetesClient client, String namespace, String... featureGates) {
         LOG.debug("Deploying Cluster Operator in Namespace {}", namespace);
         for (HasMetadata resource : loadStrimziResources(client)) {
-            if (resource instanceof ServiceAccount) {
+            if (resource instanceof ServiceAccount sa) {
                 LOG.debug("Creating {} {} in Namespace {}", resource.getKind(), resource.getMetadata().getName(), namespace);
-                resource.getMetadata().setNamespace(namespace);
-                ServiceAccount sa = (ServiceAccount) resource;
-                client.serviceAccounts().inNamespace(namespace).resource(sa).createOrReplace();
-            } else if (resource instanceof ClusterRole) {
+                sa.getMetadata().setNamespace(namespace);
+                client.serviceAccounts().inNamespace(namespace).resource(sa).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
+                client.serviceAccounts().inNamespace(namespace).resource(sa).create();
+            } else if (resource instanceof ClusterRole cr) {
                 LOG.debug("Creating {} {}", resource.getKind(), resource.getMetadata().getName());
-                ClusterRole cr = (ClusterRole) resource;
-                client.rbac().clusterRoles().resource(cr).createOrReplace();
-            } else if (resource instanceof ClusterRoleBinding) {
+                client.rbac().clusterRoles().resource(cr).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
+                client.rbac().clusterRoles().resource(cr).create();
+            } else if (resource instanceof ClusterRoleBinding crb) {
                 LOG.debug("Creating {} {}", resource.getKind(), resource.getMetadata().getName());
-                ClusterRoleBinding crb = (ClusterRoleBinding) resource;
                 crb.getSubjects().forEach(sbj -> sbj.setNamespace(namespace));
-                client.rbac().clusterRoleBindings().resource(crb).createOrReplace();
-            } else if (resource instanceof RoleBinding) {
+                client.rbac().clusterRoleBindings().resource(crb).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
+                client.rbac().clusterRoleBindings().resource(crb).create();
+            } else if (resource instanceof RoleBinding rb) {
                 resource.getMetadata().setNamespace(namespace);
-                RoleBinding rb = (RoleBinding) resource;
                 rb.getSubjects().forEach(sbj -> sbj.setNamespace(namespace));
                 // watch all namespaces
                 ClusterRoleBinding crb = new ClusterRoleBindingBuilder()
@@ -130,20 +134,21 @@ public class Utils {
                     .withSubjects(rb.getSubjects())
                     .build();
                 LOG.debug("Creating {} {}", crb.getKind(), crb.getMetadata().getName());
-                client.rbac().clusterRoleBindings().resource(crb).createOrReplace();
-            } else if (resource instanceof CustomResourceDefinition) {
+                client.rbac().clusterRoleBindings().resource(crb).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
+                client.rbac().clusterRoleBindings().resource(crb).create();
+            } else if (resource instanceof CustomResourceDefinition crd) {
                 LOG.debug("Creating {} {}", resource.getKind(), resource.getMetadata().getName());
-                CustomResourceDefinition crd = (CustomResourceDefinition) resource;
-                client.apiextensions().v1().customResourceDefinitions().resource(crd).createOrReplace();
-            } else if (resource instanceof ConfigMap) {
+                client.apiextensions().v1().customResourceDefinitions().resource(crd).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
+                client.apiextensions().v1().customResourceDefinitions().resource(crd).create();
+            } else if (resource instanceof ConfigMap cm) {
                 LOG.debug("Creating {} {} in Namespace {}", resource.getKind(), resource.getMetadata().getName(), namespace);
-                resource.getMetadata().setNamespace(namespace);
-                ConfigMap cm = (ConfigMap) resource;
-                client.configMaps().inNamespace(namespace).resource(cm).createOrReplace();
-            } else if (resource instanceof Deployment) {
+                cm.getMetadata().setNamespace(namespace);
+                client.configMaps().inNamespace(namespace).resource(cm).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
+                client.configMaps().inNamespace(namespace).resource(cm).create();
+            } else if (resource instanceof Deployment deploy) {
                 LOG.debug("Creating {} {} in Namespace {}", resource.getKind(), resource.getMetadata().getName(), namespace);
-                resource.getMetadata().setNamespace(namespace);
-                Deployment deploy = (Deployment) resource;
+                deploy.getMetadata().setNamespace(namespace);
+                deploy.getSpec().getTemplate().getSpec().getContainers().get(0).setImage(OPERATOR_IMAGE);
                 List<EnvVar> envVars = deploy.getSpec().getTemplate().getSpec().getContainers().stream()
                     .filter(con -> "strimzi-cluster-operator".equals(con.getName())).findFirst().orElseThrow().getEnv();
                 // watch all namespaces
@@ -158,7 +163,8 @@ public class Utils {
                     featureGatesEnvVar.setValueFrom(null);
                     featureGatesEnvVar.setValue(String.join(",", featureGates));
                 }
-                client.apps().deployments().inNamespace(namespace).resource(deploy).createOrReplace();
+                client.apps().deployments().inNamespace(namespace).resource(deploy).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
+                client.apps().deployments().inNamespace(namespace).resource(deploy).create();
             } else {
                 LOG.warn("Unknown resource {} {}", resource.getKind(), resource.getMetadata().getName());
             }
@@ -176,12 +182,14 @@ public class Utils {
                 .build())
             .withNewSpec()
             .withNewZookeeper()
+            .withImage(KAFKA_IMAGE)
             .withReplicas(3)
             .withNewEphemeralStorage()
             .endEphemeralStorage()
             .endZookeeper()
             .withNewKafka()
             .withReplicas(3)
+            .withImage(KAFKA_IMAGE)
             .withConfig(Map.of(
                 "num.partitions", defaultPartitions,
                 "default.replication.factor", defaultReplicas,
@@ -209,10 +217,6 @@ public class Utils {
             .withTemplate(new EntityOperatorTemplateBuilder()
                 .withNewTopicOperatorContainer()
                 .withEnv(
-                    /*new ContainerEnvVarBuilder()
-                        .withName("STRIMZI_USE_FINALIZERS")
-                        .withValue("false")
-                        .build(),*/
                     new ContainerEnvVarBuilder()
                         .withName("STRIMZI_MAX_QUEUE_SIZE")
                         .withValue(valueOf(TO_MAX_QUEUE_SIZE))
@@ -232,16 +236,8 @@ public class Utils {
             .build();
 
         LOG.debug("Creating Kafka {} in Namespace {}", name, namespace);
-        Crds.kafkaOperation(client).inNamespace(namespace).resource(kafka).createOrReplace();
+        Crds.kafkaOperation(client).inNamespace(namespace).resource(kafka).create();
         waitForKafkaReady(client, namespace, name);
-    }
-
-    public static void restartEntityOperator(KubernetesClient client, String namespace, String clusterName) {
-        LOG.debug("Restarting Entity Operator in Namespace {}", namespace);
-        client.pods().inNamespace(namespace)
-            .withLabel("strimzi.io/name", format("%s-entity-operator", clusterName))
-            .delete();
-        waitForEntityOperatorReady(client, namespace, clusterName);
     }
 
     public static void createKafkaTopic(KubernetesClient client, String namespace, String clusterName, String name) {
@@ -257,7 +253,7 @@ public class Utils {
             .endSpec()
             .build();
         LOG.debug("Creating KafkaTopic {} in Namespace {}", name, namespace);
-        Crds.topicOperation(client).inNamespace(namespace).resource(kt).createOrReplace();
+        Crds.topicOperation(client).inNamespace(namespace).resource(kt).create();
         waitForKafkaTopicReady(client, namespace, name);
     }
 
@@ -279,23 +275,21 @@ public class Utils {
         waitForKafkaTopicDeleted(client, namespace, name);
     }
 
-    public static void cleanKubernetes(KubernetesClient client, String... namespaces) throws Exception {
-        LOG.debug("Cleaning up Kubernetes");
+    public static void deleteAllResources(KubernetesClient client, String... namespaces) {
         for (String ns : namespaces) {
+            LOG.debug("Deleting all KafkaTopic resources in Namespace {}", ns);
+            Crds.topicOperation(client).inNamespace(ns).delete();
             deleteNamespace(client, ns);
         }
         for (HasMetadata resource : loadStrimziResources(client)) {
-            if (resource instanceof ClusterRole) {
+            if (resource instanceof ClusterRole cr) {
                 LOG.debug("Deleting {} {}", resource.getKind(), resource.getMetadata().getName());
-                ClusterRole cr = (ClusterRole) resource;
                 client.rbac().clusterRoles().resource(cr).delete();
-            } else if (resource instanceof ClusterRoleBinding) {
+            } else if (resource instanceof ClusterRoleBinding crb) {
                 LOG.debug("Deleting {} {}", resource.getKind(), resource.getMetadata().getName());
-                ClusterRoleBinding crb = (ClusterRoleBinding) resource;
                 client.rbac().clusterRoleBindings().resource(crb).delete();
-            } else if (resource instanceof CustomResourceDefinition) {
+            } else if (resource instanceof CustomResourceDefinition crd) {
                 LOG.debug("Deleting {} {}", resource.getKind(), resource.getMetadata().getName());
-                CustomResourceDefinition crd = (CustomResourceDefinition) resource;
                 client.apiextensions().v1().customResourceDefinitions().resource(crd).delete();
             }
         }
@@ -303,7 +297,7 @@ public class Utils {
 
     private static void waitForNamespaceReady(KubernetesClient client, String name) {
         LOG.debug("Waiting for Namespace {} to be ready", name);
-        long timeoutSec = ofMinutes(5).toSeconds();
+        long timeoutSec = ofMillis(KUBERNETES_TIMEOUT_MS).toSeconds();
         while (client.namespaces().withName(name).get() == null && timeoutSec-- > 0) {
             try {
                 SECONDS.sleep(1);
@@ -315,7 +309,7 @@ public class Utils {
 
     private static void waitForNamespaceDeleted(KubernetesClient client, String name) {
         LOG.debug("Waiting for Namespace {} to be deleted", name);
-        long timeoutSec = ofMinutes(5).toSeconds();
+        long timeoutSec = ofMillis(KUBERNETES_TIMEOUT_MS).toSeconds();
         while (client.namespaces().withName(name).get() != null && timeoutSec-- > 0) {
             try {
                 SECONDS.sleep(1);
@@ -335,13 +329,7 @@ public class Utils {
             } else {
                 return false;
             }
-        }, 5, MINUTES);
-    }
-
-    private static void waitForEntityOperatorReady(KubernetesClient client, String namespace, String clusterName) {
-        client.pods().inNamespace(namespace)
-            .withLabel("strimzi.io/name", format("%s-entity-operator", clusterName))
-            .waitUntilReady(5, MINUTES);
+        }, KUBERNETES_TIMEOUT_MS, MILLISECONDS);
     }
 
     private static void waitForKafkaTopicReady(KubernetesClient client, String namespace, String name) {
@@ -354,12 +342,12 @@ public class Utils {
             } else {
                 return false;
             }
-        }, 5, MINUTES);
+        }, KUBERNETES_TIMEOUT_MS, MILLISECONDS);
     }
 
     private static void waitForKafkaTopicDeleted(KubernetesClient client, String namespace, String name) {
         LOG.debug("Waiting for KafkaTopic {} to be deleted", name);
-        long timeoutSec = ofMinutes(5).toSeconds();
+        long timeoutSec = ofMillis(KUBERNETES_TIMEOUT_MS).toSeconds();
         while (Crds.topicOperation(client).inNamespace(namespace).withName(name).get() != null && timeoutSec-- > 0) {
             try {
                 SECONDS.sleep(1);
