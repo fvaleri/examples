@@ -42,8 +42,8 @@ public class Utils {
     private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
     
     private static final String STRIMZI_VERSION = "0.41.0";
-    private static final String OPERATOR_IMAGE = "ghcr.io/fvaleri/operator:latest";
-    private static final String KAFKA_IMAGE = "ghcr.io/fvaleri/kafka:latest-kafka-3.7.0";
+    private static final String OPERATOR_IMAGE = "192.168.49.2:5000/fvaleri/operator:latest";
+    private static final String KAFKA_IMAGE = "192.168.49.2:5000/fvaleri/kafka:latest-kafka-3.7.0";
     private static final long KUBERNETES_TIMEOUT_MS = 300_000;
     private static final int TO_RECONCILIATION_INTERVAL_SEC = 10;
     private static final int TO_MAX_QUEUE_SIZE = Integer.MAX_VALUE;
