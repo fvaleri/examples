@@ -9,11 +9,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class Configuration {
-    private static final Logger LOG = LoggerFactory.getLogger(Configuration.class);
     private static final Properties PROPS = loadConfigurationFile();
     private static final Map<String, String> CONFIG = new TreeMap<>();
 
@@ -54,12 +50,12 @@ public class Configuration {
 
     private Configuration() {
     }
-    
+
     static {
-        LOG.info("=======================================================");
-        CONFIG.forEach((k, v) -> LOG.info("{}: {}", k,
+        System.out.println("=======================================================");
+        CONFIG.forEach((k, v) -> System.out.printf("%s: %s%n", k,
             (contains(k, "password", "keystore.key") && v != null) ? "*****" : v));
-        LOG.info("=======================================================");
+        System.out.println("=======================================================");
     }
 
     private static Properties loadConfigurationFile() {

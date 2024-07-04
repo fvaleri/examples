@@ -17,10 +17,9 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.source.version>1.8</java.source.version>
-        <java.target.version>1.8</java.target.version>
+        <maven.compiler.release>8</maven.compiler.release>
         <camel.version>2.15.1.redhat-621084</camel.version>
-        <plugin.compiler.version>3.10.1</plugin.compiler.version>
+        <plugin.compiler.version>3.13.0</plugin.compiler.version>
         <plugin.bundle.version>2.3.7</plugin.bundle.version>
     </properties>
 

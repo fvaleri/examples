@@ -11,12 +11,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.source.version>11</java.source.version>
-        <java.target.version>11</java.target.version>
+        <maven.compiler.release>11</maven.compiler.release>
         <!-- the node identifier must be unique across instances -->
         <node.identifier>${project.artifactId}-0</node.identifier>
         <fuse.version>7.10.0.fuse-sb2-7_10_1-00008-redhat-00001</fuse.version>
-        <plugin.compiler.version>3.10.1</plugin.compiler.version>
+        <plugin.compiler.version>3.13.0</plugin.compiler.version>
     </properties>
 
     <dependencyManagement>
@@ -108,10 +107,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${plugin.compiler.version}</version>
-                <configuration>
-                    <source>${java.source.version}</source>
-                    <target>${java.target.version}</target>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.jboss.redhat-fuse</groupId>

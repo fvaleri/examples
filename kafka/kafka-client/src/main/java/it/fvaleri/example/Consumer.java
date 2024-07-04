@@ -36,7 +36,7 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
         try (var consumer = createKafkaConsumer()) {
             kafkaConsumer = consumer;
             consumer.subscribe(singleton(Configuration.TOPIC_NAME), this);
-            LOG.info("Subscribed to {}", Configuration.TOPIC_NAME);
+            System.out.printf("Subscribed to %s%n", Configuration.TOPIC_NAME);
             while (!closed.get() && messageCount.get() < Configuration.NUM_MESSAGES) {
                 try {
                     // next poll must be called within session.timeout.ms to avoid rebalance
@@ -44,7 +44,7 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
                     ConsumerRecords<Long, byte[]> records = consumer.poll(ofMillis(Configuration.POLL_TIMEOUT_MS));
                     if (!records.isEmpty()) {
                         for (ConsumerRecord<Long, byte[]> record : records) {
-                            LOG.debug("Record fetched from partition {}-{} offset {}",
+                            System.out.printf("Record fetched from partition %s-%d offset %d%n",
                                 record.topic(), record.partition(), record.offset());
                             sleepFor(Configuration.PROCESSING_DELAY_MS);
                             // we only add to pending offsets after processing
@@ -59,19 +59,19 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
                         pendingOffsets.clear();
                     }
                 } catch (OffsetOutOfRangeException | NoOffsetForPartitionException e) {
-                    LOG.info("Invalid or no offset found without auto.reset.policy, using latest");
+                    System.out.println("Invalid or no offset found without auto.reset.policy, using latest");
                     consumer.seekToEnd(e.partitions());
                     consumer.commitSync();
                 } catch (RecordDeserializationException e) {
                     // parsed records are returned first, the RDE is thrown on the next poll
-                    LOG.warn("Skipping invalid record at partition {} offset {} ", e.topicPartition(), e.offset());
+                    System.out.printf("Skipping invalid record at partition %s offset %d%n", e.topicPartition(), e.offset());
                     consumer.seek(e.topicPartition(), e.offset() + 1);
                     // in addition to skip the bad record you may want to send it to a DLQ (see KIP-1036)
                     if (messageCount.incrementAndGet() == Configuration.NUM_MESSAGES) {
                         break;
                     }
                 } catch (Exception e) {
-                    LOG.error(e.getMessage());
+                    System.err.println(e.getMessage());
                     if (!retriable(e)) {
                         shutdown(e);
                     }
@@ -95,12 +95,12 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
 
     @Override
     public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-        LOG.debug("Assigned partitions: {}", partitions);
+        System.out.printf("Assigned partitions: %s%n", partitions);
     }
 
     @Override
     public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-        LOG.debug("Revoked partitions: {}", partitions);
+        System.out.printf("Revoked partitions: %s%n", partitions);
         // commit pending offsets before losing the partition ownership
         kafkaConsumer.commitSync(pendingOffsets);
         pendingOffsets.clear();
@@ -108,7 +108,7 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
 
     @Override
     public void onPartitionsLost(Collection<TopicPartition> partitions) {
-        LOG.debug("Lost partitions: {}", partitions);
+        System.out.printf("Lost partitions: %s%n", partitions);
         // this is called when partitions are reassigned before we had a chance to revoke them gracefully
         // we can't commit pending offsets because these partitions are probably owned by other consumers already
         // nevertheless, we may need to do some other cleanup
@@ -117,7 +117,7 @@ public class Consumer extends Client implements ConsumerRebalanceListener, Offse
     @Override
     public void onComplete(Map<TopicPartition, OffsetAndMetadata> map, Exception e) {
         if (e != null) {
-            LOG.error("Failed to commit offsets");
+            System.err.println("Failed to commit offsets");
             if (!retriable(e)) {
                 shutdown(e);
             }

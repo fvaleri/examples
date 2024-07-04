@@ -44,13 +44,13 @@ public class Producer extends Client implements ExceptionListener {
                 // async send with transacted session and non-persistent delivery
                 producer.send(message);
                 messageCount.incrementAndGet();
-                LOG.debug("Message sent");
+                System.out.println("Message sent");
                 if (ENABLE_TXN) {
                     batchBuffer.add(message);
                     maybeCommitBatch(session, messageCount.get());
                 }
             } catch (Exception e) {
-                LOG.error(e.getMessage());
+                System.err.println(e.getMessage());
                 if (ENABLE_TXN) {
                     rollbackBatch(session);
                 }
@@ -76,6 +76,6 @@ public class Producer extends Client implements ExceptionListener {
 
     @Override
     public void onException(JMSException e) {
-        LOG.error(e.getMessage());
+        System.err.println(e.getMessage());
     }
 }

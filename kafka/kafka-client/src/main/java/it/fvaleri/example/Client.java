@@ -1,5 +1,16 @@
 package it.fvaleri.example;
 
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.config.SaslConfigs;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.errors.RebalanceInProgressException;
+import org.apache.kafka.common.errors.RetriableException;
+import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.common.errors.UnsupportedVersionException;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
@@ -13,23 +24,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.common.config.SaslConfigs;
-import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.errors.RebalanceInProgressException;
-import org.apache.kafka.common.errors.RetriableException;
-import org.apache.kafka.common.errors.TopicExistsException;
-import org.apache.kafka.common.errors.UnsupportedVersionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static java.lang.String.format;
 
 public abstract class Client extends Thread {
-    protected static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final Random RND = new Random(0);
 
     protected AtomicLong messageCount = new AtomicLong(0);
@@ -42,18 +39,18 @@ public abstract class Client extends Thread {
     @Override
     public void run() {
         try {
-            LOG.info("Starting up");
+            System.out.println("Starting up");
             execute();
             shutdown(null);
         } catch (Throwable e) {
-            LOG.error("Unhandled exception");
+            System.err.println("Unhandled exception");
             shutdown(e);
         }
     }
 
     public void shutdown(Throwable e) {
         if (!closed.get()) {
-            LOG.info("Shutting down");
+            System.out.println("Shutting down");
             closed.set(true);
             onShutdown();
             if (e != null) {
@@ -127,7 +124,7 @@ public abstract class Client extends Thread {
                 .collect(Collectors.toList());
             try {
                 admin.createTopics(newTopics).all().get();
-                LOG.info("Created topics: {}", Arrays.toString(topicNames));
+                System.out.printf("Created topics: %s%n", Arrays.toString(topicNames));
             } catch (ExecutionException e) {
                 if (!(e.getCause() instanceof TopicExistsException)) {
                     throw e;

@@ -1,17 +1,15 @@
 package it.fvaleri.example;
 
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class Client extends Thread {
-    protected static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final Random RND = new Random();
 
     protected AtomicLong messageCount = new AtomicLong(0);
@@ -24,18 +22,18 @@ public abstract class Client extends Thread {
     @Override
     public void run() {
         try {
-            LOG.info("Starting up");
+            System.out.println("Starting up");
             execute();
             shutdown(null);
         } catch (Throwable e) {
-            LOG.error("Unhandled exception");
+            System.err.println("Unhandled exception");
             shutdown(e);
         }
     }
 
     public void shutdown(Throwable e) {
         if (!closed.get()) {
-            LOG.info("Shutting down");
+            System.out.println("Shutting down");
             closed.set(true);
             onShutdown();
             if (e != null) {

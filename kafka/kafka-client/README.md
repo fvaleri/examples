@@ -1,7 +1,7 @@
 ```sh
 # run on localhost
-mvn compile exec:java
-CLIENT_TYPE="consumer" mvn compile exec:java
+NUM_MESSAGES="100" mvn compile exec:java
+CLIENT_TYPE="consumer" NUM_MESSAGES="100" mvn compile exec:java
 
 # run on Kubernetes
 mvn clean package

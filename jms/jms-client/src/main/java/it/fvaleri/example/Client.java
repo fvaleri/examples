@@ -1,10 +1,5 @@
 package it.fvaleri.example;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
@@ -13,11 +8,13 @@ import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
 import javax.jms.Topic;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class Client extends Thread {
-    protected static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final Random RND = new Random(0);
 
     protected AtomicLong messageCount = new AtomicLong(0);
@@ -31,11 +28,11 @@ public abstract class Client extends Thread {
     @Override
     public void run() {
         try {
-            LOG.info("Starting up");
+            System.out.println("Starting up");
             execute();
             shutdown(null);
         } catch (Throwable e) {
-            LOG.error("Unhandled exception");
+            System.err.println("Unhandled exception");
             shutdown(e);
         }
 
@@ -43,7 +40,7 @@ public abstract class Client extends Thread {
 
     public void shutdown(Throwable e) {
         if (!closed.get()) {
-            LOG.info("Shutting down");
+            System.out.println("Shutting down");
             closed.set(true);
             onShutdown();
             if (e != null) {
@@ -151,7 +148,7 @@ public abstract class Client extends Thread {
         if (closed.get() || batchBuffer.size() == Configuration.TXN_BATCH_MSGS
                 || messageCount >= Configuration.NUM_MESSAGES) {
             try {
-                LOG.debug("Batch commit");
+                //System.out.println("Batch commit");
                 session.commit();
             } catch (JMSException e) {
                 throw new RuntimeException(e);
@@ -162,10 +159,10 @@ public abstract class Client extends Thread {
 
     void rollbackBatch(Session session) {
         try {
-            LOG.debug("Batch rollback");
+            //System.out.println("Batch rollback");
             session.rollback();
         } catch (JMSException e) {
-            LOG.error("Rollback failed");
+            System.err.println("Rollback failed");
         }
     }
 }

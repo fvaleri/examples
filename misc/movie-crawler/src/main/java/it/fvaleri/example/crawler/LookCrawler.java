@@ -54,7 +54,7 @@ public class LookCrawler {
             viewed.add(selectedMovie);
         }
         if (slug == null || slug.isEmpty()) {
-            throw new RemoteException("No movie found");
+            throw new RemoteException("No movie found, please retry");
         }
         cache.write(viewed, LOOK_CACHE_PATH);
         return LOOK_VIEW_URL + slug;

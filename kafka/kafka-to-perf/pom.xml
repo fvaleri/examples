@@ -11,17 +11,22 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.source.version>17</java.source.version>
-        <java.target.version>17</java.target.version>
-        <strimzi.version>0.41.0</strimzi.version>
+        <maven.compiler.release>17</maven.compiler.release>
+
         <!-- Kube client version should match the version used by the Strimzi version -->
-        <kubernetes.client.version>6.12.1</kubernetes.client.version>
-        <slf4j.version>2.0.13</slf4j.version>
+        <strimzi.version>0.42.0</strimzi.version>
+        <kubernetes.client.version>6.13.1</kubernetes.client.version>
+        
         <plugin.compiler.version>3.13.0</plugin.compiler.version>
         <plugin.exec.version>3.3.0</plugin.exec.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>api</artifactId>
+            <version>${strimzi.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-client</artifactId>
@@ -38,23 +43,6 @@
             <artifactId>kubernetes-httpclient-jdk</artifactId>
             <version>${kubernetes.client.version}</version>
         </dependency>
-        <!-- sundrio is used to generate builders and fluent
-            interfaces for the Strimzi custom resources -->
-        <dependency>
-            <groupId>io.strimzi</groupId>
-            <artifactId>api</artifactId>
-            <version>${strimzi.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
     </dependencies>
 
     <build>
@@ -63,10 +51,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${plugin.compiler.version}</version>
-                <configuration>
-                    <source>${java.source.version}</source>
-                    <target>${java.target.version}</target>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

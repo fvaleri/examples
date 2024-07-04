@@ -2,8 +2,6 @@ package it.fvaleri.example;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.text.DecimalFormat;
 import java.util.concurrent.CompletableFuture;
@@ -24,17 +22,13 @@ import static it.fvaleri.example.Utils.updateKafkaTopic;
 import static java.time.Duration.ofSeconds;
 
 public class Main {
-    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
-    
     public static void main(String[] args) {
         try (KubernetesClient client = new KubernetesClientBuilder().build()) {
-            LOG.info("Starting up");
             createNamespace(client, "strimzi");
             deployClusterOperator(client, "strimzi");
             createNamespace(client, "test");
             createCluster(client, "test", "my-cluster");
             runScalabilityTests(client, 50, 20);
-            LOG.info("Shutting down");
             deleteAllResources(client, "strimzi", "test");
         } catch (Throwable e) {
             e.printStackTrace();
@@ -57,14 +51,14 @@ public class Main {
     private static void runScalabilityTests(KubernetesClient client, int seed, long limit) {
         int numProcs = Runtime.getRuntime().availableProcessors();
         ExecutorService executor = Executors.newFixedThreadPool(numProcs);
-        
-        LOG.info("Running warm-up phase");
+
+        System.out.println("Running warm-up phase");
         for (int i = 0; i < 100; i++) {
             String topicName = "topic-" + i;
             runScalabilityTask(client, topicName, new AtomicInteger(0));
         }
 
-        LOG.info("Running steady-state phase");
+        System.out.println("Running steady-state phase");
         IntStream.iterate(seed, n -> n + seed).limit(limit).forEach(batchSize -> {
             try {
                 int eventsPerTask = 3;
@@ -75,13 +69,13 @@ public class Main {
                 AtomicInteger counter = new AtomicInteger(0);
                 long t = System.nanoTime();
 
-                LOG.info("Running {} tasks in parallel with {} executors", numTasks, numProcs);
+                System.out.printf("Running &d tasks in parallel with %d executors%n", numTasks, numProcs);
                 for (int i = 0; i < numTasks; i++) {
                     String topicName = "topic-" + i;
                     futures[i] = CompletableFuture.runAsync(() -> runScalabilityTask(client, topicName, counter), executor);
                 }
 
-                LOG.info("Consuming {} spare events", spareEvents);
+                System.out.printf("Consuming %d spare events%n", spareEvents);
                 for (int j = 0; j < spareEvents; j++) {
                     futures[j] = CompletableFuture.completedFuture(null);
                     counter.incrementAndGet();
@@ -89,9 +83,9 @@ public class Main {
                
                 CompletableFuture.allOf(futures).get();
                 String durationSec = new DecimalFormat("#.#").format((System.nanoTime() - t) / 1e9);
-                LOG.info("Reconciled {} topic events in {} seconds", counter.get(), durationSec);
+                System.out.printf("Reconciled %d topic events in %s seconds%n", counter.get(), durationSec);
 
-                LOG.info("Running cool-down phase");
+                System.out.println("Running cool-down phase");
                 sleepFor(ofSeconds(10).toMillis());
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -102,16 +96,16 @@ public class Main {
     
     private static void runScalabilityTask(KubernetesClient client, String topicName, AtomicInteger counter) {
         try {
-            createKafkaTopic(client, "test", "my-cluster", topicName);
+            createKafkaTopic(client, "test", "my-cluster", topicName, false);
             counter.incrementAndGet();
             
-            updateKafkaTopic(client, "test", topicName);
+            updateKafkaTopic(client, "test", topicName, false);
             counter.incrementAndGet();
             
-            deleteKafkaTopic(client, "test", topicName);
+            deleteKafkaTopic(client, "test", topicName, false);
             counter.incrementAndGet();
         } catch (Throwable e) {
-            LOG.error("Error with topic {}: {}", topicName, e.getMessage());
+            System.err.printf("Error with topic %s: %s%n", topicName, e.getMessage());
         }
     }
 }

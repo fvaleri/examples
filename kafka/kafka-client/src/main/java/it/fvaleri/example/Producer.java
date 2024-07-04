@@ -28,7 +28,7 @@ public class Producer extends Client implements Callback {
                 producer.send(new ProducerRecord<>(Configuration.TOPIC_NAME, messageCount.get(), value), this);
                 messageCount.incrementAndGet();
             }
-            LOG.debug("Flushing records");
+            System.out.println("Flushing records");
             producer.flush();
         }
     }
@@ -47,12 +47,12 @@ public class Producer extends Client implements Callback {
     @Override
     public void onCompletion(RecordMetadata metadata, Exception e) {
         if (e != null) {
-            LOG.error(e.getMessage());
+            System.err.println(e.getMessage());
             if (!retriable(e)) {
                 shutdown(e);
             }
         } else {
-            LOG.debug("Record sent to partition {}-{} offset {}",
+            System.out.printf("Record sent to partition %s-%d offset %d%n",
                 metadata.topic(), metadata.partition(), metadata.offset());
         }
     }

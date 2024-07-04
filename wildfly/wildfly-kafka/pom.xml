@@ -12,12 +12,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.source.version>1.8</java.source.version>
-        <java.target.version>1.8</java.target.version>
+        <maven.compiler.release>8</maven.compiler.release>
         <deploy.skip>true</deploy.skip>
         <eap.version>7.4.4.GA-redhat-00011</eap.version>
         <fuse.version>7.9.0.fuse-sb2-790067-redhat-00002</fuse.version>
-        <plugin.compiler.version>3.10.1</plugin.compiler.version>
+        <plugin.compiler.version>3.13.0</plugin.compiler.version>
         <plugin.source.version>3.2.0</plugin.source.version>
         <plugin.war.version>3.0.0</plugin.war.version>
         <plugin.wildfly.version>2.0.2.Final</plugin.wildfly.version>
@@ -63,10 +62,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${plugin.compiler.version}</version>
-                <configuration>
-                    <source>${java.source.version}</source>
-                    <target>${java.target.version}</target>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.wildfly.plugins</groupId>

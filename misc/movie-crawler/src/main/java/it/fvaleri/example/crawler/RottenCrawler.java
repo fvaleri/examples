@@ -8,6 +8,7 @@ import it.fvaleri.example.model.Movie;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Set;
 
@@ -46,6 +47,9 @@ public class RottenCrawler {
                 }
             }
             cache.write(movies, ROTTEN_CACHE_PATH);
+        }
+        if (movies.isEmpty()) {
+            throw new RemoteException("No movie found, the page template may have changed");
         }
         return movies;
     }

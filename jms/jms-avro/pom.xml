@@ -11,13 +11,12 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.source.version>17</java.source.version>
-        <java.target.version>17</java.target.version>
+        <maven.compiler.release>17</maven.compiler.release>
         <main.class>it.fvaleri.example.Main</main.class>
         <qpid.version>2.1.0</qpid.version>
         <avro.version>1.11.1</avro.version>
         <slf4j.version>2.0.5</slf4j.version>
-        <plugin.compiler.version>3.10.1</plugin.compiler.version>
+        <plugin.compiler.version>3.13.0</plugin.compiler.version>
         <plugin.exec.version>3.1.0</plugin.exec.version>
     </properties>
 
@@ -50,10 +49,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${plugin.compiler.version}</version>
-                <configuration>
-                    <source>${java.source.version}</source>
-                    <target>${java.target.version}</target>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

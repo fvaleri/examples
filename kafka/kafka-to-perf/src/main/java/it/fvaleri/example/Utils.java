@@ -22,8 +22,6 @@ import io.strimzi.api.kafka.model.kafka.listener.GenericKafkaListenerBuilder;
 import io.strimzi.api.kafka.model.kafka.listener.KafkaListenerType;
 import io.strimzi.api.kafka.model.topic.KafkaTopic;
 import io.strimzi.api.kafka.model.topic.KafkaTopicBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -39,11 +37,10 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class Utils {
-    private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
+    private static final String STRIMZI_VERSION = "0.42.0";
+    private static final String OPERATOR_IMAGE = "quay.io/streams/operator:latest";
+    private static final String KAFKA_IMAGE = "quay.io/streams/kafka:latest-kafka-3.7.1";
     
-    private static final String STRIMZI_VERSION = "0.41.0";
-    private static final String OPERATOR_IMAGE = "192.168.49.2:5000/fvaleri/operator:latest";
-    private static final String KAFKA_IMAGE = "192.168.49.2:5000/fvaleri/kafka:latest-kafka-3.7.0";
     private static final long KUBERNETES_TIMEOUT_MS = 300_000;
     private static final int TO_RECONCILIATION_INTERVAL_SEC = 10;
     private static final int TO_MAX_QUEUE_SIZE = Integer.MAX_VALUE;
@@ -87,7 +84,7 @@ public class Utils {
 
     public static void createNamespace(KubernetesClient client, String name) {
         if (client.namespaces().withName(name).get() == null) {
-            LOG.debug("Creating Namespace {}", name);
+            System.out.printf("Creating Namespace %s%n", name);
             client.namespaces().resource(new NamespaceBuilder()
                 .withNewMetadata()
                 .withName(name)
@@ -98,25 +95,25 @@ public class Utils {
     }
 
     public static void deleteNamespace(KubernetesClient client, String name) {
-        LOG.debug("Deleting Namespace {}", name);
+        System.out.printf("Deleting Namespace %s%n", name);
         client.namespaces().withName(name).delete();
         waitForNamespaceDeleted(client, name);
     }
 
     public static void deployClusterOperator(KubernetesClient client, String namespace, String... featureGates) {
-        LOG.debug("Deploying Cluster Operator in Namespace {}", namespace);
+        System.out.printf("Deploying Cluster Operator in Namespace %s%n", namespace);
         for (HasMetadata resource : loadStrimziResources(client)) {
             if (resource instanceof ServiceAccount sa) {
-                LOG.debug("Creating {} {} in Namespace {}", resource.getKind(), resource.getMetadata().getName(), namespace);
+                System.out.printf("Creating %s %s in Namespace %s%n", resource.getKind(), resource.getMetadata().getName(), namespace);
                 sa.getMetadata().setNamespace(namespace);
                 client.serviceAccounts().inNamespace(namespace).resource(sa).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
                 client.serviceAccounts().inNamespace(namespace).resource(sa).create();
             } else if (resource instanceof ClusterRole cr) {
-                LOG.debug("Creating {} {}", resource.getKind(), resource.getMetadata().getName());
+                System.out.printf("Creating %s %s%n", resource.getKind(), resource.getMetadata().getName());
                 client.rbac().clusterRoles().resource(cr).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
                 client.rbac().clusterRoles().resource(cr).create();
             } else if (resource instanceof ClusterRoleBinding crb) {
-                LOG.debug("Creating {} {}", resource.getKind(), resource.getMetadata().getName());
+                System.out.printf("Creating %s %s%n", resource.getKind(), resource.getMetadata().getName());
                 crb.getSubjects().forEach(sbj -> sbj.setNamespace(namespace));
                 client.rbac().clusterRoleBindings().resource(crb).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
                 client.rbac().clusterRoleBindings().resource(crb).create();
@@ -133,20 +130,20 @@ public class Utils {
                     .withRoleRef(rb.getRoleRef())
                     .withSubjects(rb.getSubjects())
                     .build();
-                LOG.debug("Creating {} {}", crb.getKind(), crb.getMetadata().getName());
+                System.out.printf("Creating %s %s%n", crb.getKind(), crb.getMetadata().getName());
                 client.rbac().clusterRoleBindings().resource(crb).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
                 client.rbac().clusterRoleBindings().resource(crb).create();
             } else if (resource instanceof CustomResourceDefinition crd) {
-                LOG.debug("Creating {} {}", resource.getKind(), resource.getMetadata().getName());
+                System.out.printf("Creating %s %s%n", resource.getKind(), resource.getMetadata().getName());
                 client.apiextensions().v1().customResourceDefinitions().resource(crd).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
                 client.apiextensions().v1().customResourceDefinitions().resource(crd).create();
             } else if (resource instanceof ConfigMap cm) {
-                LOG.debug("Creating {} {} in Namespace {}", resource.getKind(), resource.getMetadata().getName(), namespace);
+                System.out.printf("Creating %s %s in Namespace %s%n", resource.getKind(), resource.getMetadata().getName(), namespace);
                 cm.getMetadata().setNamespace(namespace);
                 client.configMaps().inNamespace(namespace).resource(cm).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
                 client.configMaps().inNamespace(namespace).resource(cm).create();
             } else if (resource instanceof Deployment deploy) {
-                LOG.debug("Creating {} {} in Namespace {}", resource.getKind(), resource.getMetadata().getName(), namespace);
+                System.out.printf("Creating %s %s in Namespace %s%n", resource.getKind(), resource.getMetadata().getName(), namespace);
                 deploy.getMetadata().setNamespace(namespace);
                 deploy.getSpec().getTemplate().getSpec().getContainers().get(0).setImage(OPERATOR_IMAGE);
                 List<EnvVar> envVars = deploy.getSpec().getTemplate().getSpec().getContainers().stream()
@@ -166,7 +163,7 @@ public class Utils {
                 client.apps().deployments().inNamespace(namespace).resource(deploy).withTimeout(KUBERNETES_TIMEOUT_MS, MILLISECONDS).delete();
                 client.apps().deployments().inNamespace(namespace).resource(deploy).create();
             } else {
-                LOG.warn("Unknown resource {} {}", resource.getKind(), resource.getMetadata().getName());
+                System.out.printf("Unknown resource %s %s%n", resource.getKind(), resource.getMetadata().getName());
             }
         }
     }
@@ -235,12 +232,13 @@ public class Utils {
             .endSpec()
             .build();
 
-        LOG.debug("Creating Kafka {} in Namespace {}", name, namespace);
+        System.out.printf("Creating Kafka %s in Namespace %s%n", name, namespace);
         Crds.kafkaOperation(client).inNamespace(namespace).resource(kafka).create();
         waitForKafkaReady(client, namespace, name);
     }
-
-    public static void createKafkaTopic(KubernetesClient client, String namespace, String clusterName, String name) {
+    
+    public static void createKafkaTopic(KubernetesClient client, String namespace, String clusterName, String name, boolean log) {
+        if (log) System.out.printf("Creating KafkaTopic %s in Namespace %s%n", name, namespace);
         KafkaTopic kt = new KafkaTopicBuilder()
             .withNewMetadata()
             .withName(name)
@@ -252,13 +250,12 @@ public class Utils {
             .withReplicas(3)
             .endSpec()
             .build();
-        LOG.debug("Creating KafkaTopic {} in Namespace {}", name, namespace);
         Crds.topicOperation(client).inNamespace(namespace).resource(kt).create();
-        waitForKafkaTopicReady(client, namespace, name);
+        waitForKafkaTopicReady(client, namespace, name, log);
     }
-
-    public static void updateKafkaTopic(KubernetesClient client, String namespace, String name) {
-        LOG.debug("Updating KafkaTopic {} in Namespace {}", name, namespace);
+    
+    public static void updateKafkaTopic(KubernetesClient client, String namespace, String name, boolean log) {
+        if (log) System.out.printf("Updating KafkaTopic %s in Namespace %s%n", name, namespace);
         Crds.topicOperation(client).inNamespace(namespace).withName(name)
             .edit(k -> new KafkaTopicBuilder(k)
                 .editSpec()
@@ -266,37 +263,37 @@ public class Utils {
                 .withConfig(Map.of("retention.bytes", "1073741824"))
                 .endSpec()
                 .build());
-        waitForKafkaTopicReady(client, namespace, name);
+        waitForKafkaTopicReady(client, namespace, name, log);
     }
 
-    public static void deleteKafkaTopic(KubernetesClient client, String namespace, String name) {
-        LOG.debug("Deleting KafkaTopic {} in Namespace {}", name, namespace);
+    public static void deleteKafkaTopic(KubernetesClient client, String namespace, String name, boolean log) {
+        if (log) System.out.printf("Deleting KafkaTopic %s in Namespace %s%n", name, namespace);
         Crds.topicOperation(client).inNamespace(namespace).withName(name).delete();
-        waitForKafkaTopicDeleted(client, namespace, name);
+        waitForKafkaTopicDeleted(client, namespace, name, log);
     }
 
     public static void deleteAllResources(KubernetesClient client, String... namespaces) {
-        for (String ns : namespaces) {
-            LOG.debug("Deleting all KafkaTopic resources in Namespace {}", ns);
-            Crds.topicOperation(client).inNamespace(ns).delete();
-            deleteNamespace(client, ns);
+        for (String namespace : namespaces) {
+            System.out.printf("Deleting all KafkaTopic resources in Namespace %s%n", namespace);
+            Crds.topicOperation(client).inNamespace(namespace).delete();
+            deleteNamespace(client, namespace);
         }
         for (HasMetadata resource : loadStrimziResources(client)) {
             if (resource instanceof ClusterRole cr) {
-                LOG.debug("Deleting {} {}", resource.getKind(), resource.getMetadata().getName());
+                System.out.printf("Deleting %s %s%n", resource.getKind(), resource.getMetadata().getName());
                 client.rbac().clusterRoles().resource(cr).delete();
             } else if (resource instanceof ClusterRoleBinding crb) {
-                LOG.debug("Deleting {} {}", resource.getKind(), resource.getMetadata().getName());
+                System.out.printf("Deleting %s %s%n", resource.getKind(), resource.getMetadata().getName());
                 client.rbac().clusterRoleBindings().resource(crb).delete();
             } else if (resource instanceof CustomResourceDefinition crd) {
-                LOG.debug("Deleting {} {}", resource.getKind(), resource.getMetadata().getName());
+                System.out.printf("Deleting %s %s%n", resource.getKind(), resource.getMetadata().getName());
                 client.apiextensions().v1().customResourceDefinitions().resource(crd).delete();
             }
         }
     }
 
     private static void waitForNamespaceReady(KubernetesClient client, String name) {
-        LOG.debug("Waiting for Namespace {} to be ready", name);
+        System.out.printf("Waiting for Namespace %s to be ready%n", name);
         long timeoutSec = ofMillis(KUBERNETES_TIMEOUT_MS).toSeconds();
         while (client.namespaces().withName(name).get() == null && timeoutSec-- > 0) {
             try {
@@ -308,7 +305,7 @@ public class Utils {
     }
 
     private static void waitForNamespaceDeleted(KubernetesClient client, String name) {
-        LOG.debug("Waiting for Namespace {} to be deleted", name);
+        System.out.printf("Waiting for Namespace %s to be deleted%n", name);
         long timeoutSec = ofMillis(KUBERNETES_TIMEOUT_MS).toSeconds();
         while (client.namespaces().withName(name).get() != null && timeoutSec-- > 0) {
             try {
@@ -320,7 +317,7 @@ public class Utils {
     }
 
     private static void waitForKafkaReady(KubernetesClient client, String namespace, String name) {
-        LOG.debug("Waiting for Kafka {} to be ready", name);
+        System.out.printf("Waiting for Kafka %s to be ready%n", name);
         Crds.kafkaOperation(client).inNamespace(namespace).withName(name).waitUntilCondition(k -> {
             if (k.getStatus() != null && k.getStatus().getConditions() != null) {
                 return k.getMetadata().getGeneration() == k.getStatus().getObservedGeneration()
@@ -332,8 +329,8 @@ public class Utils {
         }, KUBERNETES_TIMEOUT_MS, MILLISECONDS);
     }
 
-    private static void waitForKafkaTopicReady(KubernetesClient client, String namespace, String name) {
-        LOG.debug("Waiting for KafkaTopic {} to be ready", name);
+    private static void waitForKafkaTopicReady(KubernetesClient client, String namespace, String name, boolean log) {
+        if (log) System.out.printf("Waiting for KafkaTopic %s to be ready%n", name);
         Crds.topicOperation(client).inNamespace(namespace).withName(name).waitUntilCondition(k -> {
             if (k.getStatus() != null && k.getStatus().getConditions() != null) {
                 return k.getMetadata().getGeneration() == k.getStatus().getObservedGeneration()
@@ -345,8 +342,8 @@ public class Utils {
         }, KUBERNETES_TIMEOUT_MS, MILLISECONDS);
     }
 
-    private static void waitForKafkaTopicDeleted(KubernetesClient client, String namespace, String name) {
-        LOG.debug("Waiting for KafkaTopic {} to be deleted", name);
+    private static void waitForKafkaTopicDeleted(KubernetesClient client, String namespace, String name, boolean log) {
+        if (log) System.out.printf("Waiting for KafkaTopic %s to be deleted%n", name);
         long timeoutSec = ofMillis(KUBERNETES_TIMEOUT_MS).toSeconds();
         while (Crds.topicOperation(client).inNamespace(namespace).withName(name).get() != null && timeoutSec-- > 0) {
             try {

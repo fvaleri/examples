@@ -1,3 +1,0 @@
-```sh
-mvn clean test
-```

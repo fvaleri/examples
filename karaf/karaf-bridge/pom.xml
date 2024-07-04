@@ -12,10 +12,9 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.source.version>1.8</java.source.version>
-        <java.target.version>1.8</java.target.version>
+        <maven.compiler.release>8</maven.compiler.release>
         <fuse.version>6.3.0.redhat-446</fuse.version>
-        <plugin.compiler.version>3.10.1</plugin.compiler.version>
+        <plugin.compiler.version>3.13.0</plugin.compiler.version>
         <plugin.bundle.version>2.5.3</plugin.bundle.version>
     </properties>
 
@@ -44,10 +43,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${plugin.compiler.version}</version>
-                <configuration>
-                    <source>${java.source.version}</source>
-                    <target>${java.target.version}</target>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>

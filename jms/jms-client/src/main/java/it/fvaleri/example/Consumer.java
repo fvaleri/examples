@@ -31,15 +31,15 @@ public class Consumer extends Client implements ExceptionListener {
         Destination destination = createDestination(session);
         consumer = createConsumer(session, destination);
         connection.start();
-        LOG.info("Consuming from {}", destination);
+        System.out.printf("Consuming from %s%n", destination);
         while (!closed.get() && messageCount.get() < NUM_MESSAGES) {
             try {
                 Message message = consumer.receive(RECEIVE_TIMEOUT_MS);
-                LOG.info("Message received{}", message.getJMSRedelivered() ? " (redelivered)" : "");
+                System.out.printf("Message received %s", message.getJMSRedelivered() ? "(redelivered)" : "");
                 sleep(PROCESSING_DELAY_MS);
                 messageCount.incrementAndGet();
             } catch (Exception e) {
-                LOG.error(e.getMessage());
+                System.err.println(e.getMessage());
                 if (ENABLE_TXN) {
                     rollbackBatch(session);
                 }
@@ -65,7 +65,7 @@ public class Consumer extends Client implements ExceptionListener {
 
     @Override
     public void onException(JMSException e) {
-        LOG.error(e.getMessage());
+        System.err.println(e.getMessage());
         if (ENABLE_TXN) {
             rollbackBatch(session);
         }

@@ -27,7 +27,7 @@ public class Producer extends Client {
             sleep(PROCESSING_DELAY_MS);
             client.publish(TOPIC_NAME, message);
             messageCount.incrementAndGet();
-            LOG.debug("Message sent");
+            System.out.println("Message sent");
         }
     }
 

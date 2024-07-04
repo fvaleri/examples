@@ -18,15 +18,14 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.source.version>1.8</java.source.version>
-        <java.target.version>1.8</java.target.version>
+        <maven.compiler.release>8</maven.compiler.release>
         <camel.version>2.17.0.redhat-630371</camel.version>
         <mysql.version>5.1.27</mysql.version>
         <geronimo.version>3.0</geronimo.version>
         <tranql.version>1.8</tranql.version>
         <tranql-mysql.version>1.6</tranql-mysql.version>
         <slf4j.version>1.6.6</slf4j.version>
-        <plugin.compiler.version>3.10.1</plugin.compiler.version>
+        <plugin.compiler.version>3.13.0</plugin.compiler.version>
         <plugin.bundle.version>2.5.3</plugin.bundle.version>
     </properties>
 
