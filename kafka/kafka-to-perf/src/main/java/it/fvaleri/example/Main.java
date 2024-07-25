@@ -3,7 +3,6 @@ package it.fvaleri.example;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 
-import java.text.DecimalFormat;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,7 +15,6 @@ import static it.fvaleri.example.Utils.createNamespace;
 import static it.fvaleri.example.Utils.deleteAllResources;
 import static it.fvaleri.example.Utils.deleteKafkaTopic;
 import static it.fvaleri.example.Utils.deployClusterOperator;
-import static it.fvaleri.example.Utils.sleepFor;
 import static it.fvaleri.example.Utils.stopExecutor;
 import static it.fvaleri.example.Utils.updateKafkaTopic;
 import static java.time.Duration.ofSeconds;
@@ -49,44 +47,40 @@ public class Main {
      * @param limit Total number of batches.
      */
     private static void runScalabilityTests(KubernetesClient client, int seed, long limit) {
-        int numProcs = Runtime.getRuntime().availableProcessors();
-        ExecutorService executor = Executors.newFixedThreadPool(numProcs);
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-        System.out.println("Running warm-up phase");
+        System.out.println("Warming up");
         for (int i = 0; i < 100; i++) {
             String topicName = "topic-" + i;
-            runScalabilityTask(client, topicName, new AtomicInteger(0));
+            runTask(client, topicName, new AtomicInteger(0));
         }
 
-        System.out.println("Running steady-state phase");
+        System.out.println("Running workloads");
         IntStream.iterate(seed, n -> n + seed).limit(limit).forEach(batchSize -> {
             try {
                 int eventsPerTask = 3;
                 int numTasks = batchSize / eventsPerTask;
-                int spareEvents = batchSize - numTasks * 3;
+                int numSpareEvents = batchSize - numTasks * 3;
                 
                 CompletableFuture<Void>[] futures = new CompletableFuture[numTasks];
                 AtomicInteger counter = new AtomicInteger(0);
                 long t = System.nanoTime();
 
-                System.out.printf("Running &d tasks in parallel with %d executors%n", numTasks, numProcs);
+                System.out.printf("Running %d tasks%n", numTasks);
                 for (int i = 0; i < numTasks; i++) {
                     String topicName = "topic-" + i;
-                    futures[i] = CompletableFuture.runAsync(() -> runScalabilityTask(client, topicName, counter), executor);
+                    futures[i] = CompletableFuture.runAsync(() -> runTask(client, topicName, counter), executor);
                 }
 
-                System.out.printf("Consuming %d spare events%n", spareEvents);
-                for (int j = 0; j < spareEvents; j++) {
+                System.out.printf("Consuming %d spare events%n", numSpareEvents);
+                for (int j = 0; j < numSpareEvents; j++) {
                     futures[j] = CompletableFuture.completedFuture(null);
                     counter.incrementAndGet();
                 }
                
                 CompletableFuture.allOf(futures).get();
-                String durationSec = new DecimalFormat("#.#").format((System.nanoTime() - t) / 1e9);
-                System.out.printf("Reconciled %d topic events in %s seconds%n", counter.get(), durationSec);
-
-                System.out.println("Running cool-down phase");
-                sleepFor(ofSeconds(10).toMillis());
+                long durationMs = (System.nanoTime() - t) / 1_000_000;
+                System.out.printf("Reconciled %d topic events in %d ms%n", counter.get(), durationMs);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -94,7 +88,7 @@ public class Main {
         stopExecutor(executor, ofSeconds(5).toMillis());
     }
     
-    private static void runScalabilityTask(KubernetesClient client, String topicName, AtomicInteger counter) {
+    private static void runTask(KubernetesClient client, String topicName, AtomicInteger counter) {
         try {
             createKafkaTopic(client, "test", "my-cluster", topicName, false);
             counter.incrementAndGet();
