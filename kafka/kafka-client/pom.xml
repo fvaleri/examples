@@ -13,12 +13,12 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.release>17</maven.compiler.release>
         <main.class>it.fvaleri.example.Main</main.class>
-        <kafka.version>3.7.1</kafka.version>
+        <kafka.version>3.9.0</kafka.version>
         <strimzi-oauth.version>0.15.0</strimzi-oauth.version>
         <plugin.compiler.version>3.13.0</plugin.compiler.version>
-        <plugin.dependency.version>3.7.1</plugin.dependency.version>
+        <plugin.dependency.version>3.8.0</plugin.dependency.version>
         <plugin.jar.version>3.4.2</plugin.jar.version>
-        <plugin.exec.version>3.3.0</plugin.exec.version>
+        <plugin.exec.version>3.4.1</plugin.exec.version>
         <plugin.enforcer.version>3.5.0</plugin.enforcer.version>
     </properties>
 
