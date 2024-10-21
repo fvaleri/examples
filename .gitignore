@@ -9,7 +9,6 @@ gradle/
 .classpath
 .factorypath
 .DS_Store
-.attach_pid*
 *.iml
 gradlew
 gradlew.bat
