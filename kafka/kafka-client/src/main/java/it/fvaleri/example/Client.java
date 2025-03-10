@@ -139,7 +139,7 @@ public abstract class Client extends Thread {
         Properties addProps = new Properties();
         if (config != null)   {
             try {
-                props.load(new StringReader(config.replace(" ", "\n")));
+                props.load(new StringReader(config.replace(",", "\n")));
             } catch (IOException | IllegalArgumentException e)   {
                 throw new IllegalArgumentException("Failed to parse configuration");
             }
